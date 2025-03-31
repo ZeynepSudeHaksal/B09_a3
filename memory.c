@@ -14,7 +14,7 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
         fprintf(stderr, "Failed to open /proc/meminfo\n");
         return;
     }
-    
+
     char line[256];
     char label[256];
     long int value;
@@ -22,9 +22,12 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
         sscanf(line, "%s %ld kB", label, &value);
         if (strcmp(label, "MemTotal:") == 0) {
             *total_memory = value;
+            printf("Total Memory: %ld kB\n", *total_memory);  // Debug print
         } else if (strcmp(label, "MemAvailable:") == 0) {
             *used_memory = *total_memory - value;
+            printf("Used Memory: %ld kB\n", *used_memory);  // Debug print
         }
     }
     fclose(fp);
 }
+
