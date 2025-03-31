@@ -66,6 +66,7 @@ int main(int argc, char *argv[]) {
             perror("Failed to create pipes");
             return 1;
         }
+        printf("Pipe %d created successfully.\n", i);
     }
 
     // Fork processes
@@ -73,17 +74,21 @@ int main(int argc, char *argv[]) {
         if (fork() == 0) {
             close(pipes[i][0]); // Close read end in child
 
+            printf("Child process %d started for ", i);
             if (i == 0 && mem) { // Memory process
+                printf("memory monitoring.\n");
                 long int used_memory, total_memory;
                 get_memory_usage(&used_memory, &total_memory);
                 write(pipes[i][1], &used_memory, sizeof(used_memory));
                 write(pipes[i][1], &total_memory, sizeof(total_memory));
             } else if (i == 1 && cp) { // CPU process
+                printf("CPU monitoring.\n");
                 long int total, idle;
                 read_cpu_times(&total, &idle);
                 write(pipes[i][1], &total, sizeof(total));
                 write(pipes[i][1], &idle, sizeof(idle));
             } else if (i == 2 && core) { // Cores process
+                printf("core monitoring.\n");
                 int num_cores, max_freq;
                 get_core_info(&num_cores, &max_freq);
                 write(pipes[i][1], &num_cores, sizeof(num_cores));
@@ -93,6 +98,7 @@ int main(int argc, char *argv[]) {
             exit(0);
         } else {
             close(pipes[i][1]); // Close write end in parent
+            printf("Parent closed write end for pipe %d.\n", i);
         }
     }
 
@@ -102,19 +108,23 @@ int main(int argc, char *argv[]) {
     if (mem) {
         read(pipes[0][0], &used_memory, sizeof(used_memory));
         read(pipes[0][0], &total_memory, sizeof(total_memory));
+        printf("Memory data read: used %ld kB, total %ld kB.\n", used_memory, total_memory);
     }
     if (cp) {
         read(pipes[1][0], &total, sizeof(total));
         read(pipes[1][0], &idle, sizeof(idle));
+        printf("CPU data read: total %ld, idle %ld.\n", total, idle);
     }
     if (core) {
         read(pipes[2][0], &num_cores, sizeof(num_cores));
         read(pipes[2][0], &max_freq, sizeof(max_freq));
+        printf("Core data read: number of cores %d, max frequency %d MHz.\n", num_cores, max_freq);
     }
 
     // Wait for all child processes to finish
     for (int i = 0; i < 3; i++) {
         wait(NULL);
+        printf("Child process %d has finished.\n", i);
     }
 
     // Display data (for simplicity, assume we always display all)

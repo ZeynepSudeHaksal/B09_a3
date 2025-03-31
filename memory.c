@@ -19,15 +19,16 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
     char label[256];
     long int value;
     while (fgets(line, sizeof(line), fp) != NULL) {
-        sscanf(line, "%s %ld kB", label, &value);
+        printf("Line read: %s", line);  // Debug print each line
+        sscanf(line, "%s %ld", label, &value); // Notice adjustment here
+        printf("Label: %s, Value: %ld\n", label, value); // Debug print each label and value
         if (strcmp(label, "MemTotal:") == 0) {
             *total_memory = value;
-            printf("Total Memory: %ld kB\n", *total_memory);  // Debug print
         } else if (strcmp(label, "MemAvailable:") == 0) {
             *used_memory = *total_memory - value;
-            printf("Used Memory: %ld kB\n", *used_memory);  // Debug print
         }
     }
     fclose(fp);
 }
+
 
