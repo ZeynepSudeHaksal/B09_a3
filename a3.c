@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
         if (bytes_read < 2 * sizeof(long int)) {
             perror("Failed to read full memory data from pipe");
         } else {
-            printf("Memory data read: used %ld kB, total %ld kB.\n", used_memory, total_memory);
+            printf("Memory data read: used %.2f GB, total %.2f GB.\n", used_memory / 1024.0 / 1024.0, total_memory / 1024.0 / 1024.0);
         }
     }
     if (cp) {
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
         if (bytes_read < 2 * sizeof(int)) {
             perror("Failed to read full core data from pipe");
         } else {
-            printf("Core data read: number of cores %d, max frequency %d MHz.\n", num_cores, max_freq);
+            printf("Core data read: number of cores %d, max frequency %.2f GHz.\n", num_cores, max_freq / 1000.0 / 1000.0);
         }
     }
 
