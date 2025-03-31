@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#include "cpu.h"
+
 void read_cpu_times(long int *total, long int *idle) {
     FILE* fp = fopen("/proc/stat", "r");
     if (!fp) {

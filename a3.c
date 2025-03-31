@@ -6,10 +6,10 @@
 #include <sys/wait.h>
 
 // Include the header files for each module
-#include "memory.c"
-#include "cpu.c"
-#include "cores.c"
-#include "graph.c"
+#include "memory.h"
+#include "cpu.h"
+#include "cores.h"
+#include "graph.h"
 
 void handle_sigint(int sig) {
     char answer[10];

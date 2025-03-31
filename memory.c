@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#include "memory.h"
+
 void get_memory_usage(long int *used_memory, long int *total_memory) {
     FILE *fp = fopen("/proc/meminfo", "r");
     if (!fp) {

@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#include "cores.h"
+
 void get_core_info(int *num_cores, int *max_freq) {
     FILE *fp = fopen("/proc/cpuinfo", "r");
     if (!fp) {
