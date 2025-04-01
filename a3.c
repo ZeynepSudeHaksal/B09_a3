@@ -15,6 +15,7 @@ volatile sig_atomic_t quit = 0;
 
 void handle_sigint(int sig) {
     quit = 1;
+    printf("Signal interrupt received. Exiting gracefully...\n");
 }
 
 void handle_sigtstp(int sig) {
@@ -26,7 +27,7 @@ int main(int argc, char *argv[]) {
     int delay = 500000;
     int mem = 0, cp = 0, core = 0;
     long int total_memory = 0;
-    int num_cores, max_freq;
+    int num_cores = 0, max_freq = 0;
 
     // Parse command-line arguments
     for (int i = 1; i < argc; i++) {
@@ -59,8 +60,9 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    int pipes[3][2]; // Correct pipe array declaration
+
     for (int i = 0; i < samp && !quit; i++) {
-        int pipes[3][2];
         for (int j = 0; j < 3; j++) {
             if (pipe(pipes[j]) == -1) {
                 perror("Failed to create pipe");
@@ -75,14 +77,15 @@ int main(int argc, char *argv[]) {
                 close(pipes[j][0]); // Close read end in child
                 if (j == 0 && mem) {
                     long int temp_memory = calculate_memory_utilization();
-                    printf("Memory Utilization: %ld\n", temp_memory);
+                    printf("Debug: Child %d - Memory Utilization Calculated: %ld\n", j, temp_memory);
                     write(pipes[j][1], &temp_memory, sizeof(temp_memory));
                 } else if (j == 1 && cp) {
                     double temp_cpu = calculate_cpu_utilization();
-                    printf("CPU Utilization: %.2f%%\n", temp_cpu);
+                    printf("Debug: Child %d - CPU Utilization Calculated: %.2f%%\n", j, temp_cpu);
                     write(pipes[j][1], &temp_cpu, sizeof(temp_cpu));
                 } else if (j == 2 && core) {
                     get_core_info(&num_cores, &max_freq);
+                    printf("Debug: Child %d - Cores: %d, Max Frequency: %d\n", j, num_cores, max_freq);
                     write(pipes[j][1], &num_cores, sizeof(num_cores));
                     write(pipes[j][1], &max_freq, sizeof(max_freq));
                 }
@@ -95,14 +98,18 @@ int main(int argc, char *argv[]) {
 
         // Parent process reads data
         if (mem) {
-            read(pipes[0][0], &memory_usage_array[i], sizeof(long int));
+            ssize_t bytesRead = read(pipes[0][0], &memory_usage_array[i], sizeof(long int));
+            printf("Debug: Parent - Memory Usage Read: %ld (Bytes Read: %zd)\n", memory_usage_array[i], bytesRead);
         }
         if (cp) {
-            read(pipes[1][0], &cpu_usage_array[i], sizeof(double));
+            ssize_t bytesRead = read(pipes[1][0], &cpu_usage_array[i], sizeof(double));
+            printf("Debug: Parent - CPU Usage Read: %.2f%% (Bytes Read: %zd)\n", cpu_usage_array[i], bytesRead);
         }
         if (core) {
-            read(pipes[2][0], &num_cores, sizeof(int));
-            read(pipes[2][0], &max_freq, sizeof(int));
+            ssize_t bytesRead = read(pipes[2][0], &num_cores, sizeof(int));
+            printf("Debug: Parent - Cores Read: %d (Bytes Read: %zd)\n", num_cores, bytesRead);
+            bytesRead = read(pipes[2][0], &max_freq, sizeof(int));
+            printf("Debug: Parent - Max Frequency Read: %d (Bytes Read: %zd)\n", max_freq, bytesRead);
         }
 
         // Close all pipe ends in parent
