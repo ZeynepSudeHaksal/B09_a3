@@ -138,6 +138,8 @@ int main(int argc, char *argv[]) {
               num_cores, memo_util_arr, overall_memory, max_freq,
               cpu_value_arr, i);
 
+        draw_cores(num_cores);
+
         usleep(tdelay);
     }
 
