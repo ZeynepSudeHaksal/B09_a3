@@ -36,15 +36,15 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
     fclose(fp);
 }
 
-long int calculate_memory_utilization() {
-    long int used_memory, total_memory;
+long int calculate_memory_utilization(long int used_memory) {
+    /*long int used_memory, total_memory;
     get_memory_usage(&used_memory, &total_memory);
 
     // Check for possible errors or invalid reads
     if (total_memory == 0 || used_memory == 0) {
         fprintf(stderr, "Memory data not correctly fetched\n");
         return -1;  // Error condition or invalid calculation
-    }
+    }*/
 
     // Calculate the memory utilization (difference between total and used)
     long int memory_utilization = (used_memory) / 1024/ 1024;
