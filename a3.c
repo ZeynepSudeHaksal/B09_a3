@@ -126,8 +126,9 @@ int main(int argc, char *argv[]) {
         for (int j = 0; j < samp; j++) {
             memory_usage_array[j] = used_memory; // Example to fill data
             cpu_usage_array[j] = (double)(total - idle) / total * 100.0;
+            graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, j);
         }
-        graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, samp - 1);
+        
     }
     if (core) {
         draw_cores(num_cores);
