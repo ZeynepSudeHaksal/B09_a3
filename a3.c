@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     // Command-line parsing
     for (int i = 1; i < argc; i++) {
         if (i == 1 && isdigit(*argv[i])) samples = atoi(argv[i]);
-        else if (i == 2 && isdigit(*argv[i])) tdelay = atoi(argv[i]) * 1000;
+        else if (i == 2 && isdigit(*argv[i])) tdelay = atoi(argv[i]);
         else if (strcmp(argv[i], "--memory") == 0) mem_flag = 1;
         else if (strcmp(argv[i], "--cpu") == 0) cpu_flag = 1;
         else if (strcmp(argv[i], "--cores") == 0) cores_flag = 1;
