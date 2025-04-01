@@ -36,12 +36,14 @@ void handle_sigint(int sig) {
     }
 
     // Clear buffer
-    while (getchar() != '\n');
+    //while (getchar() != '\n');
 }
 
 // Handle Ctrl+Z (ignore)
 void handle_sigtstp(int sig) {
     fprintf(stderr, "\n[!] Ctrl+Z is disabled. This program must remain in the foreground.\n");
+    fflush(stdout);
+
 }
 
 int main(int argc, char *argv[]) {
