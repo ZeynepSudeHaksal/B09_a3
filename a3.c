@@ -76,11 +76,13 @@ int main(int argc, char *argv[]) {
             } else if (pid == 0) { // Child process
                 close(pipes[j][0]); // Close read end in child
                 if (j == 0 && mem) {
-                    long int temp_memory = calculate_memory_utilization();
+                    long int *total_temp_memory;
+                    long int *used_temp_memory;
+                    get_memory_usage(used_temp_memory, total_temp_memory);
                     
-                    printf("Debug: Child %d - Memory Utilization Calculated: %ld\n", j, temp_memory);
+                    printf("Debug: Child %d - Memory Utilization Calculated: %ld\n", j, used_temp_memory);
                     fflush(stdout);
-                    write(pipes[j][1], &temp_memory, sizeof(temp_memory));
+                    write(pipes[j][1], &used_temp_memory, sizeof(used_temp_memory));
                 } else if (j == 1 && cp) {
                     double temp_cpu = calculate_cpu_utilization();
                     
