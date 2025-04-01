@@ -30,7 +30,7 @@ void read_cpu_times(CpuTimes *times) {
 }
 
 double calculate_cpu_utilization() {
-    static CpuTimes prev = {0};
+    CpuTimes prev = {0};
     CpuTimes curr;
 
     // Fetch the current CPU times

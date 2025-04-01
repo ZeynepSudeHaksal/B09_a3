@@ -1,154 +1,114 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <ctype.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <errno.h>
 
 #include "memory.h"
 #include "cpu.h"
 #include "cores.h"
 #include "graph.h"
 
-volatile sig_atomic_t quit = 0;
-
-void handle_sigint(int sig) {
-    quit = 1;
-    printf("Signal interrupt received. Exiting gracefully...\n");
-}
-
-void handle_sigtstp(int sig) {
-    printf("\nCtrl-Z pressed, but ignored.\n");
-}
+#define READ_END 0
+#define WRITE_END 1
 
 int main(int argc, char *argv[]) {
-    int samp = 20;
-    int delay = 500000;
-    int mem = 0, cp = 0, core = 0;
-    long int total_memory = 0;
-    int num_cores = 0, max_freq = 0;
+    int samples = 20;
+    int tdelay = 500000;
+    int mem_flag = 0;
+    int cpu_flag = 0;
+    int cores_flag = 0;
 
-    // Parse command-line arguments
+    // Parse optional arguments
     for (int i = 1; i < argc; i++) {
-        if (isdigit(*argv[i])) {
-            if (i == 1) samp = atoi(argv[i]);
-            else if (i == 2) delay = atoi(argv[i]);
-        } else if (strcmp(argv[i], "--memory") == 0) {
-            mem = 1;
+        if (strcmp(argv[i], "--memory") == 0) {
+            mem_flag = 1;
         } else if (strcmp(argv[i], "--cpu") == 0) {
-            cp = 1;
+            cpu_flag = 1;
         } else if (strcmp(argv[i], "--cores") == 0) {
-            core = 1;
+            cores_flag = 1;
         } else if (strncmp(argv[i], "--samples=", 10) == 0) {
-            samp = atoi(argv[i] + 10);
+            samples = atoi(argv[i] + 10);
         } else if (strncmp(argv[i], "--tdelay=", 9) == 0) {
-            delay = atoi(argv[i] + 9);
+            tdelay = atoi(argv[i] + 9);
+        }
+    }
+
+    // Default to all if no specific flag is provided
+    if (mem_flag == 0 && cpu_flag == 0 && cores_flag == 0) {
+        mem_flag = cpu_flag = cores_flag = 1;
+    }
+
+    // Arrays to store utilization values for plotting
+    long int *memory_utilizations = mem_flag ? malloc(samples * sizeof(long int)) : NULL;
+    double *cpu_utilizations = cpu_flag ? malloc(samples * sizeof(double)) : NULL;
+
+    int num_cores, max_freq;
+    if (cores_flag) {
+        get_core_info(&num_cores, &max_freq); // Assuming core info doesn't change, fetch once
+    }
+
+    pid_t pid;
+    int mem_pipe[2], cpu_pipe[2];
+
+    // Create pipes for memory and CPU data if required
+    if (mem_flag) pipe(mem_pipe);
+    if (cpu_flag) pipe(cpu_pipe);
+
+    // Fork for memory data collection
+    if (mem_flag) {
+        pid = fork();
+        if (pid == 0) { // Child process for memory
+            close(mem_pipe[READ_END]);
+            long int used_memory, total_memory;
+            for (int i = 0; i < samples; i++) {
+                get_memory_usage(&used_memory, &total_memory);
+                long int mem_util = calculate_memory_utilization(used_memory);
+                write(mem_pipe[WRITE_END], &mem_util, sizeof(long int));
+                usleep(tdelay);
+            }
+            close(mem_pipe[WRITE_END]);
+            exit(0);
         } else {
-            fprintf(stderr, "Invalid argument: %s\n", argv[i]);
-            exit(1);
+            close(mem_pipe[WRITE_END]);
         }
     }
 
-    signal(SIGINT, handle_sigint);
-    signal(SIGTSTP, handle_sigtstp);
-
-    long int *memory_usage_array = malloc(samp * sizeof(long int));
-    double *cpu_usage_array = malloc(samp * sizeof(double));
-    if (memory_usage_array == NULL || cpu_usage_array == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(1);
-    }
-
-    int pipes[3][2]; // Correct pipe array declaration
-
-    for (int i = 0; i < samp && !quit; i++) {
-        for (int j = 0; j < 3; j++) {
-            if (pipe(pipes[j]) == -1) {
-                perror("Failed to create pipe");
-                exit(1);
+    // Fork for CPU data collection
+    if (cpu_flag) {
+        pid = fork();
+        if (pid == 0) { // Child process for CPU
+            close(cpu_pipe[READ_END]);
+            for (int i = 0; i < samples; i++) {
+                double cpu_util = calculate_cpu_utilization();
+                write(cpu_pipe[WRITE_END], &cpu_util, sizeof(double));
+                usleep(tdelay);
             }
-
-            pid_t pid = fork();
-            if (pid == -1) {
-                perror("Failed to fork");
-                exit(1);
-            } else if (pid == 0) { // Child process
-                close(pipes[j][0]); // Close read end in child
-                if (j == 0 && mem) {
-                    long int *total_temp_memory;
-                    long int *used_temp_memory;
-                    get_memory_usage(used_temp_memory, total_temp_memory);
-                    long int temp_memory = calculate_memory_utilization(used_temp_memory);
-                    
-                    printf("Debug: Child %d - Memory Utilization Calculated: %ld\n", j, temp_memory);
-                    fflush(stdout);
-                    write(pipes[j][1], &temp_memory, sizeof(temp_memory));
-                } else if (j == 1 && cp) {
-                    double temp_cpu = calculate_cpu_utilization();
-                    
-                    printf("Debug: Child %d - CPU Utilization Calculated: %.2f%%\n", j, temp_cpu);
-                    fflush(stdout);
-
-                    write(pipes[j][1], &temp_cpu, sizeof(temp_cpu));
-                } else if (j == 2 && core) {
-                    get_core_info(&num_cores, &max_freq);
-                    printf("Debug: Child %d - Cores: %d, Max Frequency: %d\n", j, num_cores, max_freq);
-                    fflush(stdout);
-                    write(pipes[j][1], &num_cores, sizeof(num_cores));
-                    write(pipes[j][1], &max_freq, sizeof(max_freq));
-                }
-                close(pipes[j][1]);
-                exit(0);
-            } else {
-                close(pipes[j][1]); // Close write end in parent
-            }
+            close(cpu_pipe[WRITE_END]);
+            exit(0);
+        } else {
+            close(cpu_pipe[WRITE_END]);
         }
-
-        // Parent process reads data
-        if (mem) {
-            ssize_t bytesRead = read(pipes[0][0], &memory_usage_array[i], sizeof(long int));
-            printf("Debug: Parent - Memory Usage Read: %ld (Bytes Read: %zd)\n", memory_usage_array[i], bytesRead);
-        }
-        if (cp) {
-            ssize_t bytesRead = read(pipes[1][0], &cpu_usage_array[i], sizeof(double));
-            printf("Debug: Parent - CPU Usage Read: %.2f%% (Bytes Read: %zd)\n", cpu_usage_array[i], bytesRead);
-        }
-        if (core) {
-            ssize_t bytesRead = read(pipes[2][0], &num_cores, sizeof(int));
-            printf("Debug: Parent - Cores Read: %d (Bytes Read: %zd)\n", num_cores, bytesRead);
-            bytesRead = read(pipes[2][0], &max_freq, sizeof(int));
-            printf("Debug: Parent - Max Frequency Read: %d (Bytes Read: %zd)\n", max_freq, bytesRead);
-        }
-
-        // Close all pipe ends in parent
-        for (int j = 0; j < 3; j++) {
-            close(pipes[j][0]);
-        }
-
-        // Wait for all child processes to finish
-        while (wait(NULL) > 0);
-
-        // Graph the results for the current sample
-        if (mem || cp) {
-            printf("Graphing Memory: Current value is %ld KB (%.2f GB)\n", memory_usage_array[i], memory_usage_array[i] / 1024.0 / 1024.0);
-
-            graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
-        }
-        if (core) {
-            draw_cores(num_cores);
-        }
-
-        usleep(delay);  // Sleep for 'delay' microseconds
     }
 
-    free(memory_usage_array);
-    free(cpu_usage_array);
-
-    if (quit) {
-        printf("Termination signal received, exiting program...\n");
-        return 0;
+    // Read and graph data in the main process
+    for (int i = 0; i < samples; i++) {
+        if (mem_flag) {
+            read(mem_pipe[READ_END], &memory_utilizations[i], sizeof(long int));
+        }
+        if (cpu_flag) {
+            read(cpu_pipe[READ_END], &cpu_utilizations[i], sizeof(double));
+        }
+        // Call the graph function to update the display with each new set of data
+        graph(samples, tdelay, mem_flag, cpu_flag, cores_flag, num_cores, memory_utilizations, 0 /*total memory not dynamically updated*/, max_freq, cpu_utilizations, i);
     }
+
+    // Close pipes
+    if (mem_flag) close(mem_pipe[READ_END]);
+    if (cpu_flag) close(cpu_pipe[READ_END]);
+
+    // Free dynamically allocated memory
+    if (mem_flag) free(memory_utilizations);
+    if (cpu_flag) free(cpu_utilizations);
 
     return 0;
 }
