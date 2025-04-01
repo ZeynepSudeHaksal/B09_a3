@@ -6,7 +6,6 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-// Include the header files for each module
 #include "memory.h"
 #include "cpu.h"
 #include "cores.h"
@@ -23,9 +22,11 @@ void handle_sigtstp(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-    int samp = 20;
-    int delay = 500000;
+    int samp = 20; // Number of samples
+    int delay = 500000; // Delay in microseconds between samples
     int mem = 0, cp = 0, core = 0;
+    long int total_memory, used_memory, total, idle;
+    int num_cores, max_freq;
 
     // Parse command-line arguments
     for (int i = 1; i < argc; i++) {
@@ -54,6 +55,14 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
     signal(SIGTSTP, handle_sigtstp);
 
+    // Setup data arrays for graphing
+    long int* memory_usage_array = malloc(samp * sizeof(long int));
+    double* cpu_usage_array = malloc(samp * sizeof(double));
+    if (memory_usage_array == NULL || cpu_usage_array == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
+
     // Setup pipes
     int pipes[3][2];
     for (int i = 0; i < 3; i++) {
@@ -72,34 +81,18 @@ int main(int argc, char *argv[]) {
         } else if (pid == 0) { // Child process
             close(pipes[i][0]); // Close read end in child
 
-            if ((i == 0 && mem) || (i == 1 && cp) || (i == 2 && core)) {
-                printf("Child process %d started.\n", i);
-            }
-
             if (i == 0 && mem) { // Memory process
-                long int used_memory, total_memory;
                 get_memory_usage(&used_memory, &total_memory);
-                if (write(pipes[i][1], &used_memory, sizeof(used_memory)) != sizeof(used_memory) ||
-                    write(pipes[i][1], &total_memory, sizeof(total_memory)) != sizeof(total_memory)) {
-                    perror("Failed to write memory data to pipe");
-                    exit(1);
-                }
+                write(pipes[i][1], &used_memory, sizeof(used_memory));
+                write(pipes[i][1], &total_memory, sizeof(total_memory));
             } else if (i == 1 && cp) { // CPU process
-                long int total, idle;
                 read_cpu_times(&total, &idle);
-                if (write(pipes[i][1], &total, sizeof(total)) != sizeof(total) ||
-                    write(pipes[i][1], &idle, sizeof(idle)) != sizeof(idle)) {
-                    perror("Failed to write CPU data to pipe");
-                    exit(1);
-                }
+                write(pipes[i][1], &total, sizeof(total));
+                write(pipes[i][1], &idle, sizeof(idle));
             } else if (i == 2 && core) { // Cores process
-                int num_cores, max_freq;
                 get_core_info(&num_cores, &max_freq);
-                if (write(pipes[i][1], &num_cores, sizeof(num_cores)) != sizeof(num_cores) ||
-                    write(pipes[i][1], &max_freq, sizeof(max_freq)) != sizeof(max_freq)) {
-                    perror("Failed to write core data to pipe");
-                    exit(1);
-                }
+                write(pipes[i][1], &num_cores, sizeof(num_cores));
+                write(pipes[i][1], &max_freq, sizeof(max_freq));
             }
             close(pipes[i][1]); // Close write end
             exit(0);
@@ -109,35 +102,18 @@ int main(int argc, char *argv[]) {
     }
 
     // Read from pipes in parent
-    int num_cores, max_freq;
-    long int used_memory, total_memory, total, idle;
-    ssize_t bytes_read;
-    if (mem) {
-        bytes_read = read(pipes[0][0], &used_memory, sizeof(used_memory));
-        bytes_read += read(pipes[0][0], &total_memory, sizeof(total_memory));
-        if (bytes_read < 2 * sizeof(long int)) {
-            perror("Failed to read full memory data from pipe");
-        } else {
-            printf("Memory data read: used %.2f GB, total %.2f GB.\n", used_memory / 1024.0 / 1024.0, total_memory / 1024.0 / 1024.0);
+    for (int i = 0; i < 3; i++) {
+        if (i == 0 && mem) {
+            read(pipes[i][0], &used_memory, sizeof(used_memory));
+            read(pipes[i][0], &total_memory, sizeof(total_memory));
+        } else if (i == 1 && cp) {
+            read(pipes[i][0], &total, sizeof(total));
+            read(pipes[i][0], &idle, sizeof(idle));
+        } else if (i == 2 && core) {
+            read(pipes[i][0], &num_cores, sizeof(num_cores));
+            read(pipes[i][0], &max_freq, sizeof(max_freq));
         }
-    }
-    if (cp) {
-        bytes_read = read(pipes[1][0], &total, sizeof(total));
-        bytes_read += read(pipes[1][0], &idle, sizeof(idle));
-        if (bytes_read < 2 * sizeof(long int)) {
-            perror("Failed to read full CPU data from pipe");
-        } else {
-            printf("CPU data read: total %ld, idle %ld.\n", total, idle);
-        }
-    }
-    if (core) {
-        bytes_read = read(pipes[2][0], &num_cores, sizeof(num_cores));
-        bytes_read += read(pipes[2][0], &max_freq, sizeof(max_freq));
-        if (bytes_read < 2 * sizeof(int)) {
-            perror("Failed to read full core data from pipe");
-        } else {
-            printf("Core data read: number of cores %d, max frequency %.2f GHz.\n", num_cores, max_freq / 1000.0 / 1000.0);
-        }
+        close(pipes[i][0]);
     }
 
     // Wait for all child processes to finish
@@ -145,7 +121,23 @@ int main(int argc, char *argv[]) {
         wait(NULL);
     }
 
-    // Check if the signal flag has been set to terminate
+    // Graphing data
+    if (mem || cp) {
+        for (int j = 0; j < samp; j++) {
+            memory_usage_array[j] = used_memory; // Example to fill data
+            cpu_usage_array[j] = (double)(total - idle) / total * 100.0;
+        }
+        graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, samp - 1);
+    }
+    if (core) {
+        draw_cores(num_cores);
+    }
+
+    // Free allocated memory
+    free(memory_usage_array);
+    free(cpu_usage_array);
+
+    // Handle termination signal
     if (quit) {
         printf("Termination signal received, exiting program...\n");
         return 0;
