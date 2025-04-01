@@ -22,18 +22,15 @@ void handle_sigtstp(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-    int samp = 20; // Number of samples
-    int delay = 500000; // Delay in microseconds between samples
+    int samp = 20;
+    int delay = 500000;
     int mem = 0, cp = 0, core = 0;
 
     // Parse command-line arguments
     for (int i = 1; i < argc; i++) {
         if (isdigit(*argv[i])) {
-            if (i == 1) {
-                samp = atoi(argv[i]);
-            } else if (i == 2) {
-                delay = atoi(argv[i]);
-            }
+            if (i == 1) samp = atoi(argv[i]);
+            else if (i == 2) delay = atoi(argv[i]);
         } else if (strcmp(argv[i], "--memory") == 0) {
             mem = 1;
         } else if (strcmp(argv[i], "--cpu") == 0) {
@@ -53,93 +50,80 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
     signal(SIGTSTP, handle_sigtstp);
 
-    // Memory and CPU usage arrays
-    long int* memory_usage_array = malloc(samp * sizeof(long int));
-    double* cpu_usage_array = malloc(samp * sizeof(double));
+    long int *memory_usage_array = malloc(samp * sizeof(long int));
+    double *cpu_usage_array = malloc(samp * sizeof(double));
     if (memory_usage_array == NULL || cpu_usage_array == NULL) {
-        printf("Memory allocation failed\n");
+        fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
 
-    // Set up pipes
-    int pipes[3][2];
-    for (int i = 0; i < 3; i++) {
-        if (pipe(pipes[i]) == -1) {
-            perror("Failed to create pipes");
-            return 1;
-        }
-    }
-
-    // Fork processes
-    for (int i = 0; i < 3; i++) {
-        pid_t pid = fork();
-        if (pid == -1) {
-            perror("Failed to fork");
-            return 1;
-        } else if (pid == 0) { // Child process
-            close(pipes[i][0]); // Close read end in child
-            // Collect and send data
-            if (i == 0 && mem) {
-                long int used_memory, total_memory;
-                get_memory_usage(&used_memory, &total_memory);
-                write(pipes[i][1], &used_memory, sizeof(used_memory));
-                write(pipes[i][1], &total_memory, sizeof(total_memory));
-            } else if (i == 1 && cp) {
-                long int total, idle;
-                read_cpu_times(&total, &idle);
-                write(pipes[i][1], &total, sizeof(total));
-                write(pipes[i][1], &idle, sizeof(idle));
-            } else if (i == 2 && core) {
-                int num_cores, max_freq;
-                get_core_info(&num_cores, &max_freq);
-                write(pipes[i][1], &num_cores, sizeof(num_cores));
-                write(pipes[i][1], &max_freq, sizeof(max_freq));
+    for (int i = 0; i < samp && !quit; i++) {
+        int pipes[3][2];
+        for (int j = 0; j < 3; j++) {
+            if (pipe(pipes[j]) == -1) {
+                perror("Failed to create pipes");
+                exit(1);
             }
-            close(pipes[i][1]); // Close write end
-            exit(0);
-        } else {
-            close(pipes[i][1]); // Close write end in parent
         }
-    }
 
-    // Read data from child processes
-    int num_cores, max_freq;
-    long int total_memory = 0;
-    for (int i = 0; i < 3; i++) {
-        if (i == 0 && mem) {
-            read(pipes[i][0], &memory_usage_array[0], sizeof(long int));
-            read(pipes[i][0], &total_memory, sizeof(long int));
-        } else if (i == 1 && cp) {
-            read(pipes[i][0], &cpu_usage_array[0], sizeof(double));
-        } else if (i == 2 && core) {
-            read(pipes[i][0], &num_cores, sizeof(int));
-            read(pipes[i][0], &max_freq, sizeof(int));
-        }
-        close(pipes[i][0]);
-    }
+        int num_cores, max_freq;
+        long int total_memory;
 
-    // Wait for all child processes to finish
-    for (int i = 0; i < 3; i++) {
-        wait(NULL);
-    }
-
-    // Graph the results
-    if (mem || cp) {
-         for (int i = 0; i < samp && !quit; i++) {
-            // Simulate data collection
-            memory_usage_array[i] = (long int)(rand() % 1000 + 1000);  // Simulated memory usage
-            cpu_usage_array[i] = (double)(rand() % 100);  // Simulated CPU usage percentage
-            // Graph the current state
-            graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
-            usleep(delay);  // Sleep for 'delay' microseconds
+        for (int j = 0; j < 3; j++) {
+            pid_t pid = fork();
+            if (pid == -1) {
+                perror("Failed to fork");
+                exit(1);
+            } else if (pid == 0) { // Child process
+                close(pipes[j][0]);
+                if (j == 0 && mem) {
+                    long int used_memory, total_memory;
+                    get_memory_usage(&used_memory, &total_memory);
+                    write(pipes[j][1], &used_memory, sizeof(used_memory));
+                    write(pipes[j][1], &total_memory, sizeof(total_memory));
+                } else if (j == 1 && cp) {
+                    long int total, idle;
+                    read_cpu_times(&total, &idle);
+                    write(pipes[j][1], &total, sizeof(total));
+                    write(pipes[j][1], &idle, sizeof(idle));
+                } else if (j == 2 && core) {
+                    get_core_info(&num_cores, &max_freq);
+                    write(pipes[j][1], &num_cores, sizeof(num_cores));
+                    write(pipes[j][1], &max_freq, sizeof(max_freq));
+                }
+                close(pipes[j][1]);
+                exit(0);
+            } else {
+                close(pipes[j][1]);
             }
+        }
 
-    }
-    if (core) {
-        draw_cores(num_cores);
+        // Parent process reads data
+        if (mem) {
+            read(pipes[0][0], &memory_usage_array[i], sizeof(long int));
+            read(pipes[0][0], &total_memory, sizeof(long int));
+        }
+        if (cp) {
+            read(pipes[1][0], &cpu_usage_array[i], sizeof(double));
+        }
+        if (core) {
+            read(pipes[2][0], &num_cores, sizeof(int));
+            read(pipes[2][0], &max_freq, sizeof(int));
+        }
+        
+        // Close all pipe ends in parent
+        for (int j = 0; j < 3; j++) {
+            close(pipes[j][0]);
+        }
+
+        // Wait for all child processes to finish
+        while (wait(NULL) > 0);
+
+        // Graph the results for the current sample
+        graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
+        usleep(delay);  // Sleep for 'delay' microseconds
     }
 
-    // Clean up
     free(memory_usage_array);
     free(cpu_usage_array);
 
