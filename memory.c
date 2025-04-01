@@ -47,7 +47,7 @@ long int calculate_memory_utilization() {
     }
 
     // Calculate the memory utilization (difference between total and used)
-    long int memory_utilization = total_memory - used_memory;
+    long int memory_utilization = (total_memory - used_memory) / 1024/ 1024;
 
     return memory_utilization;
 }
