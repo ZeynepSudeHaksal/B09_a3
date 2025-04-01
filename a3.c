@@ -19,24 +19,29 @@
 pid_t mem_pid = -1, cpu_pid = -1, core_pid = -1;
 int mem_pipe[2], cpu_pipe[2], core_pipe[2];
 
-// SIGINT (Ctrl+C) Handler
+// Flags to trigger shutdown
+volatile sig_atomic_t should_quit = 0;
+
+// Handle Ctrl+C
 void handle_sigint(int sig) {
+    char response;
     printf("\nDo you really want to quit? [y/n]: ");
-    char response = getchar();
+    fflush(stdout);
+    response = getchar();
+
     if (response == 'y' || response == 'Y') {
-        if (mem_pid > 0) kill(mem_pid, SIGKILL);
-        if (cpu_pid > 0) kill(cpu_pid, SIGKILL);
-        if (core_pid > 0) kill(core_pid, SIGKILL);
-        while (wait(NULL) > 0);  // clean up child processes
-        exit(0);
+        should_quit = 1;
+    } else {
+        printf("Continuing...\n");
     }
-    // Clear input buffer
+
+    // Clear buffer
     while (getchar() != '\n');
 }
 
-// SIGTSTP (Ctrl+Z) Handler → Ignored
+// Handle Ctrl+Z (ignore)
 void handle_sigtstp(int sig) {
-    fprintf(stderr, "\n[!] Ctrl+Z is disabled for this program. Running in background is not supported.\n");
+    fprintf(stderr, "\n[!] Ctrl+Z is disabled. This program must remain in the foreground.\n");
 }
 
 int main(int argc, char *argv[]) {
