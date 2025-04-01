@@ -125,7 +125,15 @@ int main(int argc, char *argv[]) {
 
     // Graph the results
     if (mem || cp) {
-        graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, samp - 1);
+         for (int i = 0; i < samp && !quit; i++) {
+            // Simulate data collection
+            memory_usage_array[i] = (long int)(rand() % 1000 + 1000);  // Simulated memory usage
+            cpu_usage_array[i] = (double)(rand() % 100);  // Simulated CPU usage percentage
+            // Graph the current state
+            graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
+            usleep(delay);  // Sleep for 'delay' microseconds
+            }
+
     }
     if (core) {
         draw_cores(num_cores);
