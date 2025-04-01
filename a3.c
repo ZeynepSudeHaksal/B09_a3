@@ -24,20 +24,25 @@ volatile sig_atomic_t should_quit = 0;
 
 // Handle Ctrl+C
 void handle_sigint(int sig) {
-    char response;
+    char input[10];  // enough to hold "yes", "no", etc.
+
     printf("\nDo you really want to quit? [y/n]: ");
     fflush(stdout);
-    response = getchar();
 
-    if (response == 'y' || response == 'Y') {
-        should_quit = 1;
+    if (fgets(input, sizeof(input), stdin)) {
+        // Remove newline if it exists
+        input[strcspn(input, "\n")] = '\0';
+
+        if (strcasecmp(input, "y") == 0 || strcasecmp(input, "yes") == 0) {
+            should_quit = 1;
+        } else {
+            printf("Continuing...\n");
+        }
     } else {
-        printf("Continuing...\n");
+        printf("Input error. Continuing...\n");
     }
-
-    // Clear buffer
-    //while (getchar() != '\n');
 }
+
 
 // Handle Ctrl+Z (ignore)
 void handle_sigtstp(int sig) {
