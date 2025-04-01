@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        graph(i + 1, tdelay, mem_flag, cpu_flag, cores_flag, 0, memo_util_arr, overall_memory, 0, cpu_value_arr, i);
+        graph(samples, tdelay, mem_flag, cpu_flag, cores_flag, 0, memo_util_arr, overall_memory, 0, cpu_value_arr, i);
         usleep(tdelay); // Update graph at intervals
     }
 
