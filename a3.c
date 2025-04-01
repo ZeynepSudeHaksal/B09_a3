@@ -78,14 +78,18 @@ int main(int argc, char *argv[]) {
                 if (j == 0 && mem) {
                     long int temp_memory = calculate_memory_utilization();
                     printf("Debug: Child %d - Memory Utilization Calculated: %ld\n", j, temp_memory);
+                    fflush(stdout);
                     write(pipes[j][1], &temp_memory, sizeof(temp_memory));
                 } else if (j == 1 && cp) {
                     double temp_cpu = calculate_cpu_utilization();
                     printf("Debug: Child %d - CPU Utilization Calculated: %.2f%%\n", j, temp_cpu);
+                    fflush(stdout);
+
                     write(pipes[j][1], &temp_cpu, sizeof(temp_cpu));
                 } else if (j == 2 && core) {
                     get_core_info(&num_cores, &max_freq);
                     printf("Debug: Child %d - Cores: %d, Max Frequency: %d\n", j, num_cores, max_freq);
+                    fflush(stdout);
                     write(pipes[j][1], &num_cores, sizeof(num_cores));
                     write(pipes[j][1], &max_freq, sizeof(max_freq));
                 }
