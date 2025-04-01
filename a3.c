@@ -128,6 +128,8 @@ int main(int argc, char *argv[]) {
 
         // Graph the results for the current sample
         if (mem || cp) {
+            printf("Graphing Memory: Current value is %ld KB (%.2f GB)\n", memory_usage_array[i], memory_usage_array[i] / 1024.0 / 1024.0);
+
             graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
         }
         if (core) {
