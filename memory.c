@@ -23,31 +23,27 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
     }
 
     char line[256], label[256], unit[32];
-    long int value;
+    long int value, mem_free = 0, buffers = 0, cached = 0, sreclaimable = 0;
     while (fgets(line, sizeof(line), fp) != NULL) {
-        if (sscanf(line, "%255s %ld %31s", label, &value, unit) == 3) {
-            if (strcmp(label, "MemTotal:") == 0) {
-                *total_memory = value;
-            } else if (strcmp(label, "MemAvailable:") == 0) {
-                *used_memory = *total_memory - value;
-            }
+        sscanf(line, "%255s %ld %31s", label, &value, unit);
+        if (strcmp(label, "MemTotal:") == 0) {
+            *total_memory = value;
+        } else if (strcmp(label, "MemFree:") == 0) {
+            mem_free = value;
+        } else if (strcmp(label, "Buffers:") == 0) {
+            buffers = value;
+        } else if (strcmp(label, "Cached:") == 0) {
+            cached = value;
+        } else if (strcmp(label, "SReclaimable:") == 0) {
+            sreclaimable = value;
         }
     }
     fclose(fp);
+
+    // Calculate used memory as total minus free and reclaimable buffers and cache
+    *used_memory = *total_memory - mem_free - buffers - cached - sreclaimable;
 }
 
 long int calculate_memory_utilization(long int used_memory) {
-    /*long int used_memory, total_memory;
-    get_memory_usage(&used_memory, &total_memory);
-
-    // Check for possible errors or invalid reads
-    if (total_memory == 0 || used_memory == 0) {
-        fprintf(stderr, "Memory data not correctly fetched\n");
-        return -1;  // Error condition or invalid calculation
-    }*/
-
-    // Calculate the memory utilization (difference between total and used)
-    long int memory_utilization = (used_memory) / 1024/ 1024;
-
-    return memory_utilization;
+    return used_memory / 1024 / 1024; // Convert from KB to GB
 }
