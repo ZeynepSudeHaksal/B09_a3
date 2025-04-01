@@ -1,42 +1,58 @@
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
 
-#include "cpu.h"
+typedef struct CpuTimes {
+    long int user;
+    long int nice;
+    long int system;
+    long int idle;
+    long int iowait;
+    long int irq;
+    long int softirq;
+} CpuTimes;
 
-void read_cpu_times(long int *total, long int *idle) {
-    if (!total || !idle) {
-        fprintf(stderr, "Null pointer provided to read_cpu_times\n");
-        return;
-    }
-
-    FILE* fp = fopen("/proc/stat", "r");
-    if (!fp) {
+// Function to fetch the current CPU times
+void read_cpu_times(CpuTimes *times) {
+    FILE *fp = fopen("/proc/stat", "r");
+    if (fp == NULL) {
         perror("Failed to open /proc/stat");
-        return;
+        exit(1);
     }
-
-    char buffer[256];
-    if (fgets(buffer, sizeof(buffer), fp) == NULL) {
-        fprintf(stderr, "Failed to read /proc/stat\n");
-        fclose(fp);
-        return;
-    }
-
-    long int user, nice, system, idle_time, iowait, irq, softirq, steal;
-    int count = sscanf(buffer, "cpu %ld %ld %ld %ld %ld %ld %ld %ld",
-                       &user, &nice, &system, &idle_time, &iowait, &irq, &softirq, &steal);
-    if (count != 8) {
-        fprintf(stderr, "Failed to parse CPU times\n");
-        fclose(fp);
-        return;
-    }
-
-    *total = user + nice + system + idle_time + iowait + irq + softirq + steal;
-    *idle = idle_time + iowait;
-    
+    fscanf(fp, "cpu %ld %ld %ld %ld %ld %ld %ld",
+           &times->user,
+           &times->nice,
+           &times->system,
+           &times->idle,
+           &times->iowait,
+           &times->irq,
+           &times->softirq);
     fclose(fp);
+}
+
+double calculate_cpu_utilization() {
+    static CpuTimes prev = {0};
+    CpuTimes curr;
+
+    // Fetch the current CPU times
+    read_cpu_times(&curr);
+
+    // Calculate total time since last check
+    long int total_prev = prev.user + prev.nice + prev.system + prev.idle +
+                          prev.iowait + prev.irq + prev.softirq;
+    long int total_curr = curr.user + curr.nice + curr.system + curr.idle +
+                          curr.iowait + curr.irq + curr.softirq;
+    long int total_delta = total_curr - total_prev;
+
+    // Calculate idle time since last check
+    long int idle_delta = curr.idle - prev.idle;
+
+    // Save current times for the next calculation
+    prev = curr;
+
+    if (total_delta == 0) {  // Prevent division by zero
+        return 0.0;
+    }
+
+    // Calculate the percentage of CPU utilization
+    return 100.0 * (total_delta - idle_delta) / total_delta;
 }

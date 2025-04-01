@@ -25,6 +25,8 @@ int main(int argc, char *argv[]) {
     int samp = 20;
     int delay = 500000;
     int mem = 0, cp = 0, core = 0;
+    long int total_memory = 0;
+    int num_cores, max_freq;
 
     // Parse command-line arguments
     for (int i = 1; i < argc; i++) {
@@ -61,31 +63,22 @@ int main(int argc, char *argv[]) {
         int pipes[3][2];
         for (int j = 0; j < 3; j++) {
             if (pipe(pipes[j]) == -1) {
-                perror("Failed to create pipes");
+                perror("Failed to create pipe");
                 exit(1);
             }
-        }
 
-        int num_cores, max_freq;
-        long int total_memory;
-
-        for (int j = 0; j < 3; j++) {
             pid_t pid = fork();
             if (pid == -1) {
                 perror("Failed to fork");
                 exit(1);
             } else if (pid == 0) { // Child process
-                close(pipes[j][0]);
+                close(pipes[j][0]); // Close read end in child
                 if (j == 0 && mem) {
-                    long int used_memory, total_memory;
-                    get_memory_usage(&used_memory, &total_memory);
-                    write(pipes[j][1], &used_memory, sizeof(used_memory));
-                    write(pipes[j][1], &total_memory, sizeof(total_memory));
+                    long int temp_memory = calculate_memory_utilization();
+                    write(pipes[j][1], &temp_memory, sizeof(temp_memory));
                 } else if (j == 1 && cp) {
-                    long int total, idle;
-                    read_cpu_times(&total, &idle);
-                    write(pipes[j][1], &total, sizeof(total));
-                    write(pipes[j][1], &idle, sizeof(idle));
+                    double temp_cpu = calculate_cpu_utilization();
+                    write(pipes[j][1], &temp_cpu, sizeof(temp_cpu));
                 } else if (j == 2 && core) {
                     get_core_info(&num_cores, &max_freq);
                     write(pipes[j][1], &num_cores, sizeof(num_cores));
@@ -94,14 +87,13 @@ int main(int argc, char *argv[]) {
                 close(pipes[j][1]);
                 exit(0);
             } else {
-                close(pipes[j][1]);
+                close(pipes[j][1]); // Close write end in parent
             }
         }
 
         // Parent process reads data
         if (mem) {
             read(pipes[0][0], &memory_usage_array[i], sizeof(long int));
-            read(pipes[0][0], &total_memory, sizeof(long int));
         }
         if (cp) {
             read(pipes[1][0], &cpu_usage_array[i], sizeof(double));
@@ -110,7 +102,7 @@ int main(int argc, char *argv[]) {
             read(pipes[2][0], &num_cores, sizeof(int));
             read(pipes[2][0], &max_freq, sizeof(int));
         }
-        
+
         // Close all pipe ends in parent
         for (int j = 0; j < 3; j++) {
             close(pipes[j][0]);
@@ -120,7 +112,13 @@ int main(int argc, char *argv[]) {
         while (wait(NULL) > 0);
 
         // Graph the results for the current sample
-        graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
+        if (mem || cp) {
+            graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
+        }
+        if (core) {
+            // Optionally handle core drawing or information display here
+        }
+
         usleep(delay);  // Sleep for 'delay' microseconds
     }
 
