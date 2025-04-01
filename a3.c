@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "memory.h"
 #include "cpu.h"
@@ -14,14 +15,40 @@
 #define READ_END 0
 #define WRITE_END 1
 
-int main(int argc, char *argv[]) {
-    int samples = 20;             // Default number of samples
-    int tdelay = 500000;          // Default delay in microseconds (0.5 seconds)
-    int mem_flag = 0;             // Monitor memory?
-    int cpu_flag = 0;             // Monitor CPU?
-    int cores_flag = 0;           // Monitor cores?
+// Globals for cleanup
+pid_t mem_pid = -1, cpu_pid = -1, core_pid = -1;
+int mem_pipe[2], cpu_pipe[2], core_pipe[2];
 
-    // Command-line parsing
+// SIGINT (Ctrl+C) Handler
+void handle_sigint(int sig) {
+    printf("\nDo you really want to quit? [y/n]: ");
+    char response = getchar();
+    if (response == 'y' || response == 'Y') {
+        if (mem_pid > 0) kill(mem_pid, SIGKILL);
+        if (cpu_pid > 0) kill(cpu_pid, SIGKILL);
+        if (core_pid > 0) kill(core_pid, SIGKILL);
+        while (wait(NULL) > 0);  // clean up child processes
+        exit(0);
+    }
+    // Clear input buffer
+    while (getchar() != '\n');
+}
+
+// SIGTSTP (Ctrl+Z) Handler → Ignored
+void handle_sigtstp(int sig) {
+    fprintf(stderr, "\n[!] Ctrl+Z is disabled for this program. Running in background is not supported.\n");
+}
+
+int main(int argc, char *argv[]) {
+    // Setup signal handling
+    signal(SIGINT, handle_sigint);
+    signal(SIGTSTP, handle_sigtstp);
+
+    int samples = 20;
+    int tdelay = 500000;
+    int mem_flag = 0, cpu_flag = 0, cores_flag = 0;
+
+    // Parse arguments
     for (int i = 1; i < argc; i++) {
         if (i == 1 && isdigit(*argv[i])) samples = atoi(argv[i]);
         else if (i == 2 && isdigit(*argv[i])) tdelay = atoi(argv[i]);
@@ -30,120 +57,137 @@ int main(int argc, char *argv[]) {
         else if (strcmp(argv[i], "--cores") == 0) cores_flag = 1;
     }
 
-    if (!mem_flag && !cpu_flag && !cores_flag) {
-        mem_flag = cpu_flag = cores_flag = 1;  // default to all
-    }
+    if (!mem_flag && !cpu_flag && !cores_flag) mem_flag = cpu_flag = cores_flag = 1;
 
-    // Pipes and PIDs
-    int mem_pipe[2], cpu_pipe[2], core_pipe[2];
-    pid_t mem_pid, cpu_pid, core_pid;
-
-    // MEMORY pipe
+    // Memory pipe
     if (mem_flag && pipe(mem_pipe) == -1) {
-        perror("Memory pipe failed");
+        perror("Error creating memory pipe");
         exit(EXIT_FAILURE);
     }
 
     // CPU pipe
     if (cpu_flag && pipe(cpu_pipe) == -1) {
-        perror("CPU pipe failed");
+        perror("Error creating CPU pipe");
         exit(EXIT_FAILURE);
     }
 
-    // CORES pipe
+    // Core pipe
     if (cores_flag && pipe(core_pipe) == -1) {
-        perror("Cores pipe failed");
+        perror("Error creating core pipe");
         exit(EXIT_FAILURE);
     }
 
-    // Memory child
+    // Fork memory process
     if (mem_flag) {
         mem_pid = fork();
-        if (mem_pid == 0) {
+        if (mem_pid == -1) {
+            perror("Error forking memory process");
+            exit(EXIT_FAILURE);
+        } else if (mem_pid == 0) {
             close(mem_pipe[READ_END]);
-            long int used_memory, total_memory;
+            long int used, total;
             while (1) {
-                get_memory_usage(&used_memory, &total_memory);
-                write(mem_pipe[WRITE_END], &used_memory, sizeof(long int));
-                write(mem_pipe[WRITE_END], &total_memory, sizeof(long int));
+                get_memory_usage(&used, &total);
+                if (write(mem_pipe[WRITE_END], &used, sizeof(long int)) == -1 ||
+                    write(mem_pipe[WRITE_END], &total, sizeof(long int)) == -1) {
+                    perror("Error writing to memory pipe");
+                    exit(EXIT_FAILURE);
+                }
                 usleep(tdelay);
             }
-            exit(0);
         } else {
             close(mem_pipe[WRITE_END]);
         }
     }
 
-    // CPU child
+    // Fork CPU process
     if (cpu_flag) {
         cpu_pid = fork();
-        if (cpu_pid == 0) {
+        if (cpu_pid == -1) {
+            perror("Error forking CPU process");
+            exit(EXIT_FAILURE);
+        } else if (cpu_pid == 0) {
             close(cpu_pipe[READ_END]);
-            double cpu_utilization;
+            double cpu;
             while (1) {
-                cpu_utilization = calculate_cpu_utilization();
-                write(cpu_pipe[WRITE_END], &cpu_utilization, sizeof(double));
+                cpu = calculate_cpu_utilization();
+                if (write(cpu_pipe[WRITE_END], &cpu, sizeof(double)) == -1) {
+                    perror("Error writing to CPU pipe");
+                    exit(EXIT_FAILURE);
+                }
                 usleep(tdelay);
             }
-            exit(0);
         } else {
             close(cpu_pipe[WRITE_END]);
         }
     }
 
-    // Cores child
+    // Fork Cores process
     int num_cores = 0, max_freq = 0;
     if (cores_flag) {
         core_pid = fork();
-        if (core_pid == 0) {
+        if (core_pid == -1) {
+            perror("Error forking cores process");
+            exit(EXIT_FAILURE);
+        } else if (core_pid == 0) {
             close(core_pipe[READ_END]);
             get_core_info(&num_cores, &max_freq);
-            write(core_pipe[WRITE_END], &num_cores, sizeof(int));
-            write(core_pipe[WRITE_END], &max_freq, sizeof(int));
+            if (write(core_pipe[WRITE_END], &num_cores, sizeof(int)) == -1 ||
+                write(core_pipe[WRITE_END], &max_freq, sizeof(int)) == -1) {
+                perror("Error writing to core pipe");
+                exit(EXIT_FAILURE);
+            }
             close(core_pipe[WRITE_END]);
-            exit(0);  // only needs to write once
+            exit(0);  // Exit after one-time write
         } else {
             close(core_pipe[WRITE_END]);
         }
     }
 
-    // Arrays and variables for storing data
-    long int memory_usage, overall_memory = 0;
-    double cpu_usage;
-    long int memo_util_arr[samples];
-    double cpu_value_arr[samples];
-
-    // Read core info once
+    // Read cores info once
     if (cores_flag) {
-        read(core_pipe[READ_END], &num_cores, sizeof(int));
-        read(core_pipe[READ_END], &max_freq, sizeof(int));
+        if (read(core_pipe[READ_END], &num_cores, sizeof(int)) == -1 ||
+            read(core_pipe[READ_END], &max_freq, sizeof(int)) == -1) {
+            perror("Error reading from core pipe");
+        }
         close(core_pipe[READ_END]);
     }
 
-    // Sampling loop
+    // Initialize arrays
+    long int memo_util_arr[samples];
+    double cpu_value_arr[samples];
+    long int used_mem, total_mem, overall_mem = 0;
+    double cpu_usage;
+
+    // Main sampling loop
     for (int i = 0; i < samples; i++) {
         if (mem_flag) {
-            if (read(mem_pipe[READ_END], &memory_usage, sizeof(long int)) > 0 &&
-                read(mem_pipe[READ_END], &overall_memory, sizeof(long int)) > 0) {
-                memo_util_arr[i] = memory_usage;
+            if (read(mem_pipe[READ_END], &used_mem, sizeof(long int)) == -1 ||
+                read(mem_pipe[READ_END], &total_mem, sizeof(long int)) == -1) {
+                perror("Error reading from memory pipe");
+            } else {
+                memo_util_arr[i] = used_mem;
+                overall_mem = total_mem;
             }
         }
+
         if (cpu_flag) {
-            if (read(cpu_pipe[READ_END], &cpu_usage, sizeof(double)) > 0) {
+            if (read(cpu_pipe[READ_END], &cpu_usage, sizeof(double)) == -1) {
+                perror("Error reading from CPU pipe");
+            } else {
                 cpu_value_arr[i] = cpu_usage;
             }
         }
 
         graph(samples, tdelay, mem_flag, cpu_flag, cores_flag,
-              num_cores, memo_util_arr, overall_memory, max_freq,
+              num_cores, memo_util_arr, overall_mem, max_freq,
               cpu_value_arr, i);
-
         draw_cores(num_cores);
 
         usleep(tdelay);
     }
 
-    // Cleanup
+    // Final cleanup
     if (mem_flag) {
         close(mem_pipe[READ_END]);
         kill(mem_pid, SIGKILL);
@@ -153,9 +197,9 @@ int main(int argc, char *argv[]) {
         kill(cpu_pid, SIGKILL);
     }
     if (cores_flag) {
-        kill(core_pid, SIGKILL);  // technically not needed as it exits immediately
+        kill(core_pid, SIGKILL);
     }
 
-    while (wait(NULL) > 0);  // Wait for all children to finish
+    while (wait(NULL) > 0);
     return 0;
 }
