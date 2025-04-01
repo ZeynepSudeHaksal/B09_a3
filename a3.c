@@ -75,9 +75,11 @@ int main(int argc, char *argv[]) {
                 close(pipes[j][0]); // Close read end in child
                 if (j == 0 && mem) {
                     long int temp_memory = calculate_memory_utilization();
+                    printf("Memory Utilization: %ld\n", temp_memory);
                     write(pipes[j][1], &temp_memory, sizeof(temp_memory));
                 } else if (j == 1 && cp) {
                     double temp_cpu = calculate_cpu_utilization();
+                    printf("CPU Utilization: %.2f%%\n", temp_cpu);
                     write(pipes[j][1], &temp_cpu, sizeof(temp_cpu));
                 } else if (j == 2 && core) {
                     get_core_info(&num_cores, &max_freq);
@@ -116,7 +118,7 @@ int main(int argc, char *argv[]) {
             graph(samp, delay, mem, cp, core, num_cores, memory_usage_array, total_memory, max_freq, cpu_usage_array, i);
         }
         if (core) {
-            // Optionally handle core drawing or information display here
+            draw_cores(num_cores);
         }
 
         usleep(delay);  // Sleep for 'delay' microseconds
