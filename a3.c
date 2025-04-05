@@ -179,8 +179,7 @@ int main(int argc, char *argv[]) {
         }
 
         graph(samples, tdelay, mem_flag, cpu_flag, cores_flag,
-              num_cores, memo_util_arr, overall_mem, max_freq,
-              cpu_value_arr, i);
+             memo_util_arr, overall_mem, cpu_value_arr, i);
         draw_cores(num_cores);
 
         usleep(tdelay);
