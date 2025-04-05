@@ -15,32 +15,19 @@
 #define READ_END 0
 #define WRITE_END 1
 
+// Flags to trigger shutdown
+volatile sig_atomic_t should_quit = 0;
+volatile sig_atomic_t sigint_triggered = 0;
+
 // Globals for cleanup
 pid_t mem_pid = -1, cpu_pid = -1, core_pid = -1;
 int mem_pipe[2], cpu_pipe[2], core_pipe[2];
 
-// Flags to trigger shutdown
-volatile sig_atomic_t should_quit = 0;
+
 
 // Handle Ctrl+C
 void handle_sigint(int sig) {
-    char input[10];  // enough to hold "yes", "no", etc.
-
-    printf("\nDo you really want to quit? [y/n]: ");
-    fflush(stdout);
-
-    if (fgets(input, sizeof(input), stdin)) {
-        // Remove newline if it exists
-        input[strcspn(input, "\n")] = '\0';
-
-        if (strcasecmp(input, "y") == 0 || strcasecmp(input, "yes") == 0) {
-            should_quit = 1;
-        } else {
-            printf("Continuing...\n");
-        }
-    } else {
-        printf("Input error. Continuing...\n");
-    }
+    sigint_triggered = 1;
 }
 
 
@@ -197,6 +184,25 @@ int main(int argc, char *argv[]) {
         draw_cores(num_cores);
 
         usleep(tdelay);
+        if (sigint_triggered) {
+            printf("\nDo you really want to quit? [y/n]: ");
+            fflush(stdout);
+            char response = getchar();
+
+            if (response == 'y' || response == 'Y') {
+                should_quit = 1;
+                break;
+                } 
+            else {
+                printf("Continuing...\n");
+                sigint_triggered = 0;
+
+                // Clear remaining characters in input buffer
+                int ch;
+                while ((ch = getchar()) != '\n' && ch != EOF);
+                }
+            }
+
     }
 
     // Final cleanup
