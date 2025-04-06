@@ -129,3 +129,4 @@ void draw_cores(int mem, int cp, int core, int cores) {
         printf("\n");
     }
 }
+
