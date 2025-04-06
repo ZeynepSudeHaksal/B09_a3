@@ -13,7 +13,7 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
         return;
     }
 
-    *used_memory = 0; // Initialize output variables
+    *used_memory = 0;
     *total_memory = 0;
 
     FILE *fp = fopen("/proc/meminfo", "r");
@@ -22,26 +22,28 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
         return;
     }
 
-    char line[256], label[256], unit[32];
-    long int value, mem_free = 0, buffers = 0, cached = 0, sreclaimable = 0;
-    while (fgets(line, sizeof(line), fp) != NULL) {
-        sscanf(line, "%255s %ld %31s", label, &value, unit);
-        if (strcmp(label, "MemTotal:") == 0) {
-            *total_memory = value;
-        } else if (strcmp(label, "MemFree:") == 0) {
-            mem_free = value;
-        } else if (strcmp(label, "Buffers:") == 0) {
-            buffers = value;
-        } else if (strcmp(label, "Cached:") == 0) {
-            cached = value;
-        } else if (strcmp(label, "SReclaimable:") == 0) {
-            sreclaimable = value;
+    char label[64], unit[32], line[256];
+    long int value;
+    long int mem_total = 0, mem_free = 0;
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (sscanf(line, "%63[^:]: %ld %31s", label, &value, unit) == 3) {
+            if (strcmp(label, "MemTotal") == 0) {
+                mem_total = value;
+            } else if (strcmp(label, "MemFree") == 0) {
+                mem_free = value;
+            }
+        }
+
+        if (mem_total > 0 && mem_free > 0) {
+            break; // stop early once we have what we need
         }
     }
+
     fclose(fp);
 
-    // Calculate used memory as total minus free and reclaimable buffers and cache
-    *used_memory = *total_memory - mem_free - buffers - cached - sreclaimable;
+    *total_memory = mem_total;
+    *used_memory = mem_total - mem_free;
 }
 
 long int calculate_memory_utilization(long int used_memory) {
