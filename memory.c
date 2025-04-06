@@ -30,7 +30,7 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
         if (sscanf(line, "%63[^:]: %ld %31s", label, &value, unit) == 3) {
             if (strcmp(label, "MemTotal") == 0) {
                 mem_total = value;
-            } else if (strcmp(label, "MemFree") == 0) {
+            } else if (strcmp(label, "MemAvailable") == 0) {
                 mem_free = value;
             }
         }
