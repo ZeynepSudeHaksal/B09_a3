@@ -8,19 +8,19 @@
 #include "graph.h"
 
 //function for graphing to the terminal.
-void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_arr, long int overall_value, double* cpu_value_arr, int j)
+void graph(int sample, int delay, int mem, int cp, long int* mem_arr, long int overall_value, double* cpu_arr, int t)
 {
     printf("\033[2J\n");
     printf("\033[H\n");
 
-    printf("Nbr of samples: %d --- every %d microSecs (%.3f secs)\n", samp, delay, (float)delay/1e6);
+    printf("Nbr of samples: %d --- every %d microSecs (%.3f secs)\n", sample, delay, (float)delay/1e6);
 
     printf("\n");
 
-    if(!(mem || cp || core) || (mem))//all 0 or memory 1
+    if(mem)
     {
         //MEMORY
-        printf("v Memory %.2f GB\n", memo_util_arr[j] / 1e6); 
+        printf("v Memory %.2f GB\n", mem_arr[t] / 1e6); 
 
         for(int n = 12; n > 0; n--)
         {
@@ -32,9 +32,9 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
             {
                 printf("      |");
             }
-            for(int i = 0; i < j; i++)
+            for(int i = 0; i < t; i++)
             {
-                    if (ceil(memo_util_arr[i]*12.0/(int)(overall_value)) == n) //how many bars does it fill?
+                    if (ceil(mem_arr[i]*12.0/(int)(overall_value)) == n) //how many bars does it fill?
                     {
                         printf("#");
                     }
@@ -47,7 +47,7 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
         }
         
         printf("0 GB  ");
-        for(int o = 0; o < samp+1; o++) //+1 for the _ for the axis
+        for(int o = 0; o < sample+1; o++) //+1 for the _ for the axis
         {
             printf("_");
         }
@@ -55,10 +55,10 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
         printf("\n");
     }
 
-    if(!(mem || cp || core) || (cp))
+    if((cp))
     {
         //CPU
-        printf("v CPU %.2f %%\n",cpu_value_arr[j]);
+        printf("v CPU %.2f %%\n",cpu_arr[t]);
         for(int n = 10; n > 0; n--)
         {
             if (n==10)
@@ -66,9 +66,9 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
                 printf("100 %% |");
             }
             else {printf("      |");}
-            for(int i = 0; i < j; i++)
+            for(int i = 0; i < t; i++)
             {
-                    if (ceil(cpu_value_arr[i]*10/100) == n) //how many bars does it fill?
+                    if (ceil(cpu_arr[i]*10/100) == n) 
                     {
                         printf(":");
                     }
@@ -80,7 +80,7 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
             printf("\n");
         }
         printf("0 %%   ");
-        for(int o = 0; o < samp+1; o++)
+        for(int k = 0; k < sample+1; k++)
         {
             printf("_");
         }
@@ -90,8 +90,10 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
 
 }   
 
-void draw_cores(int mem, int cp, int core, int cores) {
-    if (!core) return;  // only draw if the core flag is active
+void draw_cores(int core, int cores) {
+    if (!core){
+        return;  // only draw if the core flag is active
+    }
 
     printf("Nbr of cores: %d\n", cores);
 

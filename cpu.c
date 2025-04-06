@@ -23,8 +23,7 @@ int get_cpu_times(long int *total, long int *idle) {
 
     long int user, nice, system, idle_val, iowait, irq, softirq;
 
-    if (fscanf(fp, "cpu %ld %ld %ld %ld %ld %ld %ld",
-               &user, &nice, &system, &idle_val, &iowait, &irq, &softirq) != 7) {
+    if (fscanf(fp, "cpu %ld %ld %ld %ld %ld %ld %ld", &user, &nice, &system, &idle_val, &iowait, &irq, &softirq) != 7) {
         perror("Failed to read CPU times");
         fclose(fp);
         return -1;

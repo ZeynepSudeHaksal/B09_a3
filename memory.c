@@ -7,6 +7,10 @@
 
 #include "memory.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 void get_memory_usage(long int *used_memory, long int *total_memory) {
     if (!used_memory || !total_memory) {
         fprintf(stderr, "Null pointers provided to get_memory_usage\n");
@@ -18,33 +22,37 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
 
     FILE *fp = fopen("/proc/meminfo", "r");
     if (!fp) {
-        fprintf(stderr, "Failed to open /proc/meminfo\n");
+        perror("Failed to open /proc/meminfo");
         return;
     }
 
-    char label[64], unit[32], line[256];
+    char line[256];
+    char label[64];
     long int value;
-    long int mem_total = 0, mem_free = 0;
+    int found_total = 0;
+    int found_available = 0;
+    long int available_mem = 0;
 
     while (fgets(line, sizeof(line), fp)) {
-        if (sscanf(line, "%63[^:]: %ld %31s", label, &value, unit) == 3) {
-            if (strcmp(label, "MemTotal") == 0) {
-                mem_total = value;
-            } else if (strcmp(label, "MemAvailable") == 0) {
-                mem_free = value;
-            }
+        // Scan label and value from line
+        if (sscanf(line, "%s %ld", label, &value) != 2) continue;
+
+        if (strcmp(label, "MemTotal:") == 0) {
+            *total_memory = value;
+            found_total = 1;
+        } else if (strcmp(label, "MemAvailable:") == 0) {
+            available_mem = value;
+            found_available = 1;
         }
 
-        if (mem_total > 0 && mem_free > 0) {
-            break; // stop early once we have what we need
-        }
+        if (found_total && found_available) break;
     }
 
     fclose(fp);
 
-    *total_memory = mem_total;
-    *used_memory = mem_total - mem_free;
+    *used_memory = *total_memory - available_mem;
 }
+
 
 long int calculate_memory_utilization(long int used_memory) {
     return used_memory / 1024 / 1024; // Convert from KB to GB
