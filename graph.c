@@ -90,34 +90,42 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
 
 }   
 
-void draw_cores(int cores) {
-    printf("Nbr of cores: %d\n", cores);
-    int rows = cores / 4;
-    if (cores % 4 != 0) rows++;
-
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < 4; j++) {
-            if (i * 4 + j < cores)
-                printf("+----+  ");
-            else
-                printf("       ");
+void draw_cores( int mem, int cp, int core, int cores) {
+    if(!(mem || cp || core) || (core)){
+        printf("Nbr of cores: %d\n", cores);
+        int rows = cores / 4;
+        if (cores % 4 != 0) {
+            rows++;
         }
-        printf("\n");
 
-        for (int j = 0; j < 4; j++) {
-            if (i * 4 + j < cores)
-                printf("|    |  ");
-            else
-                printf("       ");
-        }
-        printf("\n");
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (i * 4 + j < cores)
+                    printf("+----+  ");
+                else
+                    printf("       ");
+            }
+            printf("\n");
 
-        for (int j = 0; j < 4; j++) {
-            if (i * 4 + j < cores)
-                printf("+----+  ");
-            else
-                printf("       ");
-        }
-        printf("\n");
+            for (int j = 0; j < 4; j++) {
+                if (i * 4 + j < cores){
+                    printf("|    |  ");
+                }
+                else
+                    printf("       ");
+            }
+            printf("\n");
+
+            for (int j = 0; j < 4; j++) {
+                if (i * 4 + j < cores){
+                    printf("+----+  ");
+                }
+                else{
+                    printf("       ");
+                }
+            }
+            printf("\n");
     }
+    }
+    
 }
