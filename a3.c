@@ -19,11 +19,6 @@
 volatile sig_atomic_t should_quit = 0;
 volatile sig_atomic_t sigint_triggered = 0;
 
-// Globals for cleanup
-
-
-
-
 // Handle Ctrl+C
 void handle_sigint(int sig) {
    sigint_triggered = 1;
