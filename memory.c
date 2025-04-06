@@ -1,57 +1,51 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <math.h>
 
 #include "memory.h"
 
-// Function to read current memory info
-int read_mem_info(MemInfo *info) {
-    FILE *fp = fopen("/proc/meminfo", "r");
-    if (fp == NULL) {
-        perror("Failed to open /proc/meminfo");
-        return -1;
+void get_memory_usage(long int *used_memory, long int *total_memory) {
+    if (!used_memory || !total_memory) {
+        fprintf(stderr, "Null pointers provided to get_memory_usage\n");
+        return;
     }
 
-    char line[256], label[64], unit[32];
+    *used_memory = 0;
+    *total_memory = 0;
+
+    FILE *fp = fopen("/proc/meminfo", "r");
+    if (!fp) {
+        fprintf(stderr, "Failed to open /proc/meminfo\n");
+        return;
+    }
+
+    char label[64], unit[32], line[256];
     long int value;
-    int found_total = 0, found_free = 0;
+    long int mem_total = 0, mem_free = 0;
 
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%63[^:]: %ld %31s", label, &value, unit) == 3) {
             if (strcmp(label, "MemTotal") == 0) {
-                info->total = value;
-                found_total = 1;
+                mem_total = value;
             } else if (strcmp(label, "MemFree") == 0) {
-                info->free = value;
-                found_free = 1;
+                mem_free = value;
             }
         }
 
-        if (found_total && found_free) break;  // stop early if both values found
+        if (mem_total > 0 && mem_free > 0) {
+            break; // stop early once we have what we need
+        }
     }
 
     fclose(fp);
 
-    if (!found_total || !found_free) {
-        fprintf(stderr, "Failed to parse memory info\n");
-        return -1;
-    }
-
-    return 0;
+    *total_memory = mem_total;
+    *used_memory = mem_total - mem_free;
 }
 
-// Function to calculate memory utilization as a percentage
-double calculate_memory_utilization() {
-    MemInfo mem;
-
-    if (read_mem_info(&mem) != 0) {
-        return -1;  // error reading memory
-    }
-
-    if (mem.total == 0) {
-        return 0.0;  // prevent division by zero
-    }
-
-    long int used = mem.total - mem.free;
-    return 100.0 * used / mem.total;
+long int calculate_memory_utilization(long int used_memory) {
+    return used_memory / 1024 / 1024; // Convert from KB to GB
 }

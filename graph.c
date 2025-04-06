@@ -8,7 +8,7 @@
 #include "graph.h"
 
 //function for graphing to the terminal.
-void graph(int samp, int delay, int mem, int cp, int core,  double* memo_util_arr, long int overall_value, double* cpu_value_arr, int j)
+void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_arr, long int overall_value, double* cpu_value_arr, int j)
 {
     printf("\033[2J\n");
     printf("\033[H\n");
