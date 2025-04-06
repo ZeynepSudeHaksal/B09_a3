@@ -33,8 +33,8 @@ void handle_sigint(int sig) {
 
 // Handle Ctrl+Z (ignore)
 void handle_sigtstp(int sig) {
-    fprintf(stderr, "\n[!] Ctrl+Z is disabled. This program must remain in the foreground.\n");
-    fflush(stdout);
+    char msg[] = "This is ctrl z, Caught signal 20\n";
+    write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 
 }
 
