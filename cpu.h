@@ -12,7 +12,7 @@ typedef struct CpuTimes {
     long int softirq;
 } CpuTimes;
 
-void read_cpu_times(long int *total, long int *idle);
+int read_cpu_times(CpuTimes *times);
 double calculate_cpu_utilization();
 
 #endif
