@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
         draw_cores(cores_flag, num_cores);
 
         usleep(tdelay);
-        if (sigint_triggered = 1) {
+        if (sigint_triggered) {
             printf("\nDo you really want to quit? [y/n]: ");
             fflush(stdout);
             char response = getchar();
