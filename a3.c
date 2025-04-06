@@ -17,17 +17,16 @@
 
 // Flags to trigger shutdown
 volatile sig_atomic_t should_quit = 0;
-volatile sig_atomic_t sigint_triggered = 0;
+//volatile sig_atomic_t sigint_triggered = 0;
 
 // Globals for cleanup
-pid_t mem_pid = -1, cpu_pid = -1, core_pid = -1;
-int mem_pipe[2], cpu_pipe[2], core_pipe[2];
 
+int sigint_triggered = 0;
 
 
 // Handle Ctrl+C
 void handle_sigint(int sig) {
-    sigint_triggered = 1;
+   sigint_triggered = 1;
 }
 
 
@@ -71,6 +70,8 @@ int main(int argc, char *argv[]) {
     if (!mem_flag && !cpu_flag && !cores_flag) {
         mem_flag = cpu_flag = cores_flag = 1;
     }
+    pid_t mem_pid = -1, cpu_pid = -1, core_pid = -1;
+    int mem_pipe[2], cpu_pipe[2], core_pipe[2];
 
     // Memory pipe
     if (mem_flag && pipe(mem_pipe) == -1) {
@@ -202,7 +203,7 @@ int main(int argc, char *argv[]) {
         draw_cores(cores_flag, num_cores);
 
         usleep(tdelay);
-        if (sigint_triggered) {
+        if (sigint_triggered = 1) {
             printf("\nDo you really want to quit? [y/n]: ");
             fflush(stdout);
             char response = getchar();
