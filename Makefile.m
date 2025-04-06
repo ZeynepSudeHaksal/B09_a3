@@ -1,18 +1,32 @@
 CC = gcc
-
-CFLAGS = -Wall -g -std=c99 -Werror 
+CFLAGS = -Wall -g -std=c99 -Werror
 
 TARGET = systemMonitor
 
-OBJECTS = a3.o memory.o cpu.o cores.o graph.o 
-HEADS = memory.h cpu.h cores.h graph.h
+OBJECTS = a3.o memory.o cpu.o cores.o graph.o
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-%.o: %.c $(HEADS)
+a3.o: a3.c memory.h cpu.h cores.h graph.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-.PHONY: clean
+memory.o: memory.c memory.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+cpu.o: cpu.c cpu.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+cores.o: cores.c cores.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+graph.o: graph.c graph.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+.PHONY: clean run
+
 clean:
 	rm -f *.o $(TARGET)
+
+run: $(TARGET)
+	./$(TARGET)
