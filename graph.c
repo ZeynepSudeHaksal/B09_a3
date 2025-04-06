@@ -90,42 +90,42 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
 
 }   
 
-void draw_cores( int mem, int cp, int core, int cores) {
-    if(!(mem || cp || core) || (core)){
-        printf("Nbr of cores: %d\n", cores);
-        int rows = cores / 4;
-        if (cores % 4 != 0) {
-            rows++;
+void draw_cores(int mem, int cp, int core, int cores) {
+    if (!core) return;  // only draw if the core flag is active
+
+    printf("Nbr of cores: %d\n", cores);
+
+    int rows = cores / 4;
+    if (cores % 4 != 0) {
+        rows++;
+    }
+
+    for (int i = 0; i < rows; i++) {
+        // Top border of each core
+        for (int j = 0; j < 4; j++) {
+            if (i * 4 + j < cores)
+                printf("+----+  ");
+            else
+                printf("        ");
         }
+        printf("\n");
 
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (i * 4 + j < cores)
-                    printf("+----+  ");
-                else
-                    printf("       ");
-            }
-            printf("\n");
+        // Core content row
+        for (int j = 0; j < 4; j++) {
+            if (i * 4 + j < cores)
+                printf("|    |  ");
+            else
+                printf("        ");
+        }
+        printf("\n");
 
-            for (int j = 0; j < 4; j++) {
-                if (i * 4 + j < cores){
-                    printf("|    |  ");
-                }
-                else
-                    printf("       ");
-            }
-            printf("\n");
-
-            for (int j = 0; j < 4; j++) {
-                if (i * 4 + j < cores){
-                    printf("+----+  ");
-                }
-                else{
-                    printf("       ");
-                }
-            }
-            printf("\n");
+        // Bottom border of each core
+        for (int j = 0; j < 4; j++) {
+            if (i * 4 + j < cores)
+                printf("+----+  ");
+            else
+                printf("        ");
+        }
+        printf("\n");
     }
-    }
-    
 }
