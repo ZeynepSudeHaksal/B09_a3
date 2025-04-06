@@ -16,8 +16,8 @@
 #define WRITE_END 1
 
 // Flags to trigger shutdown
-//volatile sig_atomic_t should_quit = 0;
-//volatile sig_atomic_t sigint_triggered = 0;
+volatile sig_atomic_t should_quit = 0;
+volatile sig_atomic_t sigint_triggered = 0;
 
 // Globals for cleanup
 pid_t mem_pid = -1, cpu_pid = -1, core_pid = -1;
@@ -26,32 +26,10 @@ int mem_pipe[2], cpu_pipe[2], core_pipe[2];
 
 
 // Handle Ctrl+C
-//void handle_sigint(int sig) {
-//    sigint_triggered = 1;
-//}
 void handle_sigint(int sig) {
-    char msg[] = "\nThis is ctrl c, Caught signal 2\n";
-    write(STDOUT_FILENO, msg, sizeof(msg) - 1); // write() is async-signal-safe
-    
-    char prompt[] = "Do you want to stop the process? (y/n): ";
-    write(STDOUT_FILENO, prompt, sizeof(prompt) - 1);
-
-    char response;
-    ssize_t n = read(STDIN_FILENO, &response, 1); // read a single char
-
-    if (n > 0 && (response == 'y' || response == 'Y')) 
-    {
-        char quit_msg[] = "Stopping process...\n";
-        write(STDOUT_FILENO, quit_msg, sizeof(quit_msg) - 1);
-        kill(getpid(), SIGKILL); // Kill self instead of parent
-    } 
-    else {
-        char cont_msg[] = "Continuing...\n";
-        write(STDOUT_FILENO, cont_msg, sizeof(cont_msg) - 1);
-        kill(getpid(), SIGCONT); // Continue self
-    }
-
+    sigint_triggered = 1;
 }
+
 
 
 
@@ -224,7 +202,7 @@ int main(int argc, char *argv[]) {
         draw_cores(mem_flag, cpu_flag, cores_flag, num_cores);
 
         usleep(tdelay);
-        /*if (sigint_triggered) {
+        if (sigint_triggered) {
             printf("\nDo you really want to quit? [y/n]: ");
             fflush(stdout);
             char response = getchar();
@@ -241,7 +219,7 @@ int main(int argc, char *argv[]) {
                 int ch;
                 while ((ch = getchar()) != '\n' && ch != EOF);
                 }
-            }*/
+            }
 
     }
 
