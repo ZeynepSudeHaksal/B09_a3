@@ -1,15 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct CpuTimes {
-    long int user;
-    long int nice;
-    long int system;
-    long int idle;
-    long int iowait;
-    long int irq;
-    long int softirq;
-} CpuTimes;
+#include "cpu.h"
+
 
 // Function to fetch the current CPU times
 int read_cpu_times(CpuTimes *times) {
