@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
         }
 
         graph(samples, tdelay, mem_flag, cpu_flag, memo_util_arr, overall_mem, cpu_value_arr, i);
-        draw_cores(mem_flag, cpu_flag, cores_flag, num_cores);
+        draw_cores(cores_flag, num_cores);
 
         usleep(tdelay);
         if (sigint_triggered) {
