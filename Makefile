@@ -1,7 +1,7 @@
 CC = gcc
-CFLAGS = -Wall -g -std=c99 -Werror -D_POSIX_C_SOURCE=200809L
+CFLAGS = -Wall -g -std=c99 -Werror -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE
 
-TARGET = systemMonitor
+TARGET = myMonitoringTool
 
 OBJECTS = a3.o memory.o cpu.o cores.o graph.o
 
