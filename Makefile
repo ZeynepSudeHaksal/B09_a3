@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -g -std=c99 -Werror -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE
+CFLAGS = -Wall -g -std=c99 -Werror -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE -D _BSD_SOURCE
 
 TARGET = myMonitoringTool
 
