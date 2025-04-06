@@ -49,14 +49,26 @@ int main(int argc, char *argv[]) {
 
     // Parse arguments
     for (int i = 1; i < argc; i++) {
-        if (i == 1 && isdigit(*argv[i])) samples = atoi(argv[i]);
-        else if (i == 2 && isdigit(*argv[i])) tdelay = atoi(argv[i]);
-        else if (strcmp(argv[i], "--memory") == 0) mem_flag = 1;
-        else if (strcmp(argv[i], "--cpu") == 0) cpu_flag = 1;
-        else if (strcmp(argv[i], "--cores") == 0) cores_flag = 1;
+        if (i == 1 && isdigit(*argv[i])) {
+            samples = atoi(argv[i]);
+        }
+        else if (i == 2 && isdigit(*argv[i])) {
+            tdelay = atoi(argv[i]);
+        }
+        else if (strcmp(argv[i], "--memory") == 0){
+            mem_flag = 1;
+        } 
+        else if (strcmp(argv[i], "--cpu") == 0){
+             cpu_flag = 1;
+        }
+        else if (strcmp(argv[i], "--cores") == 0) {
+            cores_flag = 1;
+        }
     }
 
-    if (!mem_flag && !cpu_flag && !cores_flag) mem_flag = cpu_flag = cores_flag = 1;
+    if (!mem_flag && !cpu_flag && !cores_flag) {
+        mem_flag = cpu_flag = cores_flag = 1;
+    }
 
     // Memory pipe
     if (mem_flag && pipe(mem_pipe) == -1) {
@@ -82,7 +94,8 @@ int main(int argc, char *argv[]) {
         if (mem_pid == -1) {
             perror("Error forking memory process");
             exit(EXIT_FAILURE);
-        } else if (mem_pid == 0) {
+        } 
+        else if (mem_pid == 0) {
             close(mem_pipe[READ_END]);
             long int used, total;
             while (1) {
@@ -105,7 +118,8 @@ int main(int argc, char *argv[]) {
         if (cpu_pid == -1) {
             perror("Error forking CPU process");
             exit(EXIT_FAILURE);
-        } else if (cpu_pid == 0) {
+        } 
+        else if (cpu_pid == 0) {
             close(cpu_pipe[READ_END]);
             double cpu;
             while (1) {
@@ -128,7 +142,8 @@ int main(int argc, char *argv[]) {
         if (core_pid == -1) {
             perror("Error forking cores process");
             exit(EXIT_FAILURE);
-        } else if (core_pid == 0) {
+        } 
+        else if (core_pid == 0) {
             close(core_pipe[READ_END]);
             get_core_info(&num_cores, &max_freq);
             if (write(core_pipe[WRITE_END], &num_cores, sizeof(int)) == -1 ||
@@ -138,7 +153,8 @@ int main(int argc, char *argv[]) {
             }
             close(core_pipe[WRITE_END]);
             exit(0);  // Exit after one-time write
-        } else {
+        } 
+        else {
             close(core_pipe[WRITE_END]);
         }
     }
@@ -164,7 +180,8 @@ int main(int argc, char *argv[]) {
             if (read(mem_pipe[READ_END], &used_mem, sizeof(long int)) == -1 ||
                 read(mem_pipe[READ_END], &total_mem, sizeof(long int)) == -1) {
                 perror("Error reading from memory pipe");
-            } else {
+            } 
+            else {
                 memo_util_arr[i] = used_mem;
                 overall_mem = total_mem;
             }
@@ -173,13 +190,13 @@ int main(int argc, char *argv[]) {
         if (cpu_flag) {
             if (read(cpu_pipe[READ_END], &cpu_usage, sizeof(double)) == -1) {
                 perror("Error reading from CPU pipe");
-            } else {
+            } 
+            else {
                 cpu_value_arr[i] = cpu_usage;
             }
         }
 
-        graph(samples, tdelay, mem_flag, cpu_flag, cores_flag,
-             memo_util_arr, overall_mem, cpu_value_arr, i);
+        graph(samples, tdelay, mem_flag, cpu_flag, cores_flag, memo_util_arr, overall_mem, cpu_value_arr, i);
         draw_cores(num_cores);
 
         usleep(tdelay);

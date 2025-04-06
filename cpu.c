@@ -11,14 +11,7 @@ int read_cpu_times(CpuTimes *times) {
         perror("Failed to open /proc/stat");
         return -1;
     }
-    if (fscanf(fp, "cpu %ld %ld %ld %ld %ld %ld %ld",
-               &times->user,
-               &times->nice,
-               &times->system,
-               &times->idle,
-               &times->iowait,
-               &times->irq,
-               &times->softirq) != 7) {
+    if (fscanf(fp, "cpu %ld %ld %ld %ld %ld %ld %ld", &times->user, &times->nice, &times->system, &times->idle, &times->iowait, &times->irq, &times->softirq) != 7) {
         perror("Failed to read CPU times");
         fclose(fp);
         return -1;

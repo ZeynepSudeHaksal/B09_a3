@@ -91,6 +91,7 @@ void graph(int samp, int delay, int mem, int cp, int core,  long int* memo_util_
 }   
 
 void draw_cores(int cores) {
+    printf("Nbr of cores: %d\n", cores);
     int rows = cores / 4;
     if (cores % 4 != 0) rows++;
 
