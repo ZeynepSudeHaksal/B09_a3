@@ -17,11 +17,11 @@
 
 // Flags to trigger shutdown
 volatile sig_atomic_t should_quit = 0;
-//volatile sig_atomic_t sigint_triggered = 0;
+volatile sig_atomic_t sigint_triggered = 0;
 
 // Globals for cleanup
 
-int sigint_triggered = 0;
+
 
 
 // Handle Ctrl+C
