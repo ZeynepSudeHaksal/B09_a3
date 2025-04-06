@@ -2,17 +2,8 @@
 #define CPU_H
 
 #include <stdio.h>
-typedef struct CpuTimes {
-    long int user;
-    long int nice;
-    long int system;
-    long int idle;
-    long int iowait;
-    long int irq;
-    long int softirq;
-} CpuTimes;
 
-int read_cpu_times(CpuTimes *times);
+int get_cpu_times(long int *total, long int *idle);
 double calculate_cpu_utilization();
 
 #endif
