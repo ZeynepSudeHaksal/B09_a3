@@ -13,9 +13,6 @@
 #include "cores.h"
 #include "graph.h"
 
-#define READ_END 0
-#define WRITE_END 1
-
 // Flags to trigger shutdown
 volatile sig_atomic_t should_quit = 0;
 volatile sig_atomic_t sigint_triggered = 0;
@@ -25,15 +22,15 @@ void handle_sigint(int sig) {
    sigint_triggered = 1;
 }
 
-// Handle Ctrl+Z (ignore)
+// Handle Ctrl+Z
 void handle_sigtstp(int sig) {
-    char msg[] = "This is ctrl z, Caught signal 20\n";
+    char msg[] = "This is ctrl z, continuing\n";
     write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 
 }
 
 int main(int argc, char *argv[]) {
-    // Setup signal handling
+    //signal handling
     signal(SIGINT, handle_sigint);
     signal(SIGTSTP, handle_sigtstp);
 
@@ -92,19 +89,19 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         } 
         else if (mem_pid == 0) {
-            close(mem_pipe[READ_END]);
+            close(mem_pipe[0]);
             long int used, total;
             while (1) {
                 get_memory_usage(&used, &total);
-                if (write(mem_pipe[WRITE_END], &used, sizeof(long int)) == -1 ||
-                    write(mem_pipe[WRITE_END], &total, sizeof(long int)) == -1) {
+                if (write(mem_pipe[1], &used, sizeof(long int)) == -1 ||
+                    write(mem_pipe[1], &total, sizeof(long int)) == -1) {
                     perror("Error writing to memory pipe");
                     exit(EXIT_FAILURE);
                 }
                 usleep(tdelay);
             }
         } else {
-            close(mem_pipe[WRITE_END]);
+            close(mem_pipe[1]);
         }
     }
 
@@ -116,18 +113,18 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         } 
         else if (cpu_pid == 0) {
-            close(cpu_pipe[READ_END]);
+            close(cpu_pipe[0]);
             double cpu;
             while (1) {
                 cpu = calculate_cpu_utilization();
-                if (write(cpu_pipe[WRITE_END], &cpu, sizeof(double)) == -1) {
+                if (write(cpu_pipe[1], &cpu, sizeof(double)) == -1) {
                     perror("Error writing to CPU pipe");
                     exit(EXIT_FAILURE);
                 }
                 usleep(tdelay);
             }
         } else {
-            close(cpu_pipe[WRITE_END]);
+            close(cpu_pipe[1]);
         }
     }
 
@@ -141,28 +138,28 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         } 
         else if (core_pid == 0) {
-            close(core_pipe[READ_END]);
+            close(core_pipe[0]);
             get_core_info(&num_cores, &max_freq);
-            if (write(core_pipe[WRITE_END], &num_cores, sizeof(int)) == -1 ||
-                write(core_pipe[WRITE_END], &max_freq, sizeof(double)) == -1) {
+            if (write(core_pipe[1], &num_cores, sizeof(int)) == -1 ||
+                write(core_pipe[1], &max_freq, sizeof(double)) == -1) {
                 perror("Error writing to core pipe");
                 exit(EXIT_FAILURE);
             }
-            close(core_pipe[WRITE_END]);
+            close(core_pipe[1]);
             exit(0);  // Exit after one-time write
         } 
         else {
-            close(core_pipe[WRITE_END]);
+            close(core_pipe[1]);
         }
     }
 
     // Read cores info once
     if (cores_flag) {
-        if (read(core_pipe[READ_END], &num_cores, sizeof(int)) == -1 ||
-            read(core_pipe[READ_END], &max_freq, sizeof(double)) == -1) {
+        if (read(core_pipe[0], &num_cores, sizeof(int)) == -1 ||
+            read(core_pipe[0], &max_freq, sizeof(double)) == -1) {
             perror("Error reading from core pipe");
         }
-        close(core_pipe[READ_END]);
+        close(core_pipe[0]);
     }
 
     // Initialize arrays
@@ -174,8 +171,8 @@ int main(int argc, char *argv[]) {
     // Main sampling loop
     for (int i = 0; i < samples; i++) {
         if (mem_flag) {
-            if (read(mem_pipe[READ_END], &used_mem, sizeof(long int)) == -1 ||
-                read(mem_pipe[READ_END], &total_mem, sizeof(long int)) == -1) {
+            if (read(mem_pipe[0], &used_mem, sizeof(long int)) == -1 ||
+                read(mem_pipe[0], &total_mem, sizeof(long int)) == -1) {
                 perror("Error reading from memory pipe");
             } 
             else {
@@ -185,7 +182,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (cpu_flag) {
-            if (read(cpu_pipe[READ_END], &cpu_usage, sizeof(double)) == -1) {
+            if (read(cpu_pipe[0], &cpu_usage, sizeof(double)) == -1) {
                 perror("Error reading from CPU pipe");
             } 
             else {
@@ -198,7 +195,7 @@ int main(int argc, char *argv[]) {
 
         usleep(tdelay);
         if (sigint_triggered) {
-            printf("\nDo you really want to quit? [y/n]: ");
+            printf("\nDo you want to quit? [y/n]: ");
             fflush(stdout);
             char response = getchar();
 
@@ -220,11 +217,11 @@ int main(int argc, char *argv[]) {
 
     // Final cleanup
     if (mem_flag) {
-        close(mem_pipe[READ_END]);
+        close(mem_pipe[0]);
         kill(mem_pid, SIGKILL);
     }
     if (cpu_flag) {
-        close(cpu_pipe[READ_END]);
+        close(cpu_pipe[0]);
         kill(cpu_pid, SIGKILL);
     }
     if (cores_flag) {
