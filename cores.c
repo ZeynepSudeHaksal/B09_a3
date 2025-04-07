@@ -7,7 +7,7 @@
 
 #include "cores.h"
 
-void get_core_info(int *num_cores, int *max_freq) {
+void get_core_info(int *num_cores, double *max_freq) {
     FILE *fp = fopen("/proc/cpuinfo", "r");
     if (!fp) {
         fprintf(stderr, "Failed to open /proc/cpuinfo\n");
@@ -31,7 +31,7 @@ void get_core_info(int *num_cores, int *max_freq) {
         return;
     }
 
-    fscanf(freq_fp, "%d", max_freq);
+    fscanf(freq_fp, "%lf", &max_freq);
     fclose(freq_fp);
     fclose(fp);
 }

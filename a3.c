@@ -132,7 +132,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Fork Cores process
-    int num_cores = 0, max_freq = 0;
+    int num_cores = 0;
+    double max_freq = 0;
     if (cores_flag) {
         core_pid = fork();
         if (core_pid == -1) {
@@ -143,7 +144,7 @@ int main(int argc, char *argv[]) {
             close(core_pipe[READ_END]);
             get_core_info(&num_cores, &max_freq);
             if (write(core_pipe[WRITE_END], &num_cores, sizeof(int)) == -1 ||
-                write(core_pipe[WRITE_END], &max_freq, sizeof(int)) == -1) {
+                write(core_pipe[WRITE_END], &max_freq, sizeof(double)) == -1) {
                 perror("Error writing to core pipe");
                 exit(EXIT_FAILURE);
             }
@@ -158,7 +159,7 @@ int main(int argc, char *argv[]) {
     // Read cores info once
     if (cores_flag) {
         if (read(core_pipe[READ_END], &num_cores, sizeof(int)) == -1 ||
-            read(core_pipe[READ_END], &max_freq, sizeof(int)) == -1) {
+            read(core_pipe[READ_END], &max_freq, sizeof(double)) == -1) {
             perror("Error reading from core pipe");
         }
         close(core_pipe[READ_END]);
@@ -193,7 +194,7 @@ int main(int argc, char *argv[]) {
         }
 
         graph(samples, tdelay, mem_flag, cpu_flag, memo_util_arr, overall_mem, cpu_value_arr, i);
-        draw_cores(cores_flag, num_cores);
+        draw_cores(cores_flag, num_cores, max_freq);
 
         usleep(tdelay);
         if (sigint_triggered) {

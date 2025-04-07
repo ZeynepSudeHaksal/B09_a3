@@ -90,12 +90,12 @@ void graph(int sample, int delay, int mem, int cp, long int* mem_arr, long int o
 
 }   
 
-void draw_cores(int core, int cores) {
+void draw_cores(int core, int cores, double maxfreq) {
     if (!core){
         return;  // only draw if the core flag is active
     }
 
-    printf("Nbr of cores: %d\n", cores);
+    printf("Number of Cores : %d @ %.2f GHz\n",cores ,(double)(maxfreq/1e6));
 
     int rows = cores / 4;
     if (cores % 4 != 0) {

@@ -3,6 +3,6 @@
 
 #include <stdio.h>
 
-void get_core_info(int *num_cores, int *max_freq);
+void get_core_info(int *num_cores, double *max_freq);
 
 #endif
