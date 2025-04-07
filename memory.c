@@ -7,10 +7,6 @@
 
 #include "memory.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 void get_memory_usage(long int *used_memory, long int *total_memory) {
     if (!used_memory || !total_memory) {
         fprintf(stderr, "Null pointers provided to get_memory_usage\n");
@@ -45,7 +41,9 @@ void get_memory_usage(long int *used_memory, long int *total_memory) {
             found_available = 1;
         }
 
-        if (found_total && found_available) break;
+        if (found_total && found_available){
+             break;
+        }
     }
 
     fclose(fp);

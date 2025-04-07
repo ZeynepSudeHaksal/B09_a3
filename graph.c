@@ -34,7 +34,7 @@ void graph(int sample, int delay, int mem, int cp, long int* mem_arr, long int o
             }
             for(int i = 0; i < t; i++)
             {
-                    if (ceil(mem_arr[i]*12.0/(int)(overall_value)) == n) //how many bars does it fill?
+                    if (ceil(mem_arr[i]*12.0/(int)(overall_value)) == n) 
                     {
                         printf("#");
                     }
@@ -47,7 +47,7 @@ void graph(int sample, int delay, int mem, int cp, long int* mem_arr, long int o
         }
         
         printf("0 GB  ");
-        for(int o = 0; o < sample+1; o++) //+1 for the _ for the axis
+        for(int k = 0; k < sample+1; k++) 
         {
             printf("_");
         }

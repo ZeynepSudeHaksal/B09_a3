@@ -14,6 +14,6 @@ typedef struct CpuTimes {
 } CpuTimes;
 
 int read_cpu_times(CpuTimes *times);
-double calculate_cpu_utilization();
+double calculate_cpu_utilization(CpuTimes *prev, CpuTimes *curr)
 
 #endif

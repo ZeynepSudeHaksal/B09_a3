@@ -1,44 +1,42 @@
+#include <stdio.h>
 #include <stdlib.h>
-
 #include "cpu.h"
-// Function to fetch the current CPU times
+
 int read_cpu_times(CpuTimes *times) {
     FILE *fp = fopen("/proc/stat", "r");
-    if (fp == NULL) {
+    if (!fp) {
         perror("Failed to open /proc/stat");
         return -1;
     }
-    if (fscanf(fp, "cpu %ld %ld %ld %ld %ld %ld %ld", &times->user, &times->nice, &times->system, &times->idle, &times->iowait, &times->irq, &times->softirq) != 7) {
+
+    if (fscanf(fp, "cpu %ld %ld %ld %ld %ld %ld %ld",
+               &times->user,
+               &times->nice,
+               &times->system,
+               &times->idle,
+               &times->iowait,
+               &times->irq,
+               &times->softirq) != 7) {
         perror("Failed to read CPU times");
         fclose(fp);
         return -1;
     }
+
     fclose(fp);
     return 0;
 }
 
-double calculate_cpu_utilization() {
-    static CpuTimes prev = {0};  // static to keep value between calls
-    CpuTimes curr;
+double calculate_cpu_utilization(CpuTimes *prev, CpuTimes *curr) {
+    long int total_prev = prev->user + prev->nice + prev->system +
+                          prev->idle + prev->iowait + prev->irq + prev->softirq;
 
-    // Fetch the current CPU times
-    if (read_cpu_times(&curr) != 0) {
-        return -1;  // return an error code or handle error appropriately
-    }
+    long int total_curr = curr->user + curr->nice + curr->system +
+                          curr->idle + curr->iowait + curr->irq + curr->softirq;
 
-    // Calculate total time since last check
-    long int total_prev = prev.user + prev.nice + prev.system + prev.idle + prev.iowait + prev.irq + prev.softirq;
-    long int total_curr = curr.user + curr.nice + curr.system + curr.idle + curr.iowait + curr.irq + curr.softirq;
     long int total_diff = total_curr - total_prev;
-    long int idle_diff = curr.idle - prev.idle;
+    long int idle_diff = curr->idle - prev->idle;
 
-    // Save current times for the next calculation
-    prev = curr;
+    if (total_diff == 0) return 0.0;
 
-    if (total_diff == 0) {
-        return 0.0;  // prevent division by zero
-    }
-
-    // Calculate the percentage of CPU utilization
     return 100.0 * (total_diff - idle_diff) / total_diff;
 }

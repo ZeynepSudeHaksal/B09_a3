@@ -114,19 +114,39 @@ int main(int argc, char *argv[]) {
         } 
         else if (cpu_pid == 0) {
             close(cpu_pipe[0]);
+
+            CpuTimes prev, curr;
             double cpu;
+
+            if (read_cpu_times(&prev) != 0) {
+                fprintf(stderr, "Initial CPU read failed\n");
+                exit(EXIT_FAILURE);
+            }
+
+            usleep(tdelay);  // wait before the first diff
+
             while (1) {
-                cpu = calculate_cpu_utilization();
+                if (read_cpu_times(&curr) != 0) {
+                    fprintf(stderr, "CPU read failed\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                cpu = calculate_cpu_utilization(&prev, &curr);
+
                 if (write(cpu_pipe[1], &cpu, sizeof(double)) == -1) {
                     perror("Error writing to CPU pipe");
                     exit(EXIT_FAILURE);
                 }
+
+                prev = curr; // update previous
                 usleep(tdelay);
             }
-        } else {
+        } 
+        else {
             close(cpu_pipe[1]);
         }
-    }
+}
+
 
     // Fork Cores process
     int num_cores = 0;
