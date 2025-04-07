@@ -3,7 +3,17 @@
 
 #include <stdio.h>
 
-int get_cpu_times(long int *total, long int *idle);
+typedef struct CpuTimes {
+    long int user;
+    long int nice;
+    long int system;
+    long int idle;
+    long int iowait;
+    long int irq;
+    long int softirq;
+} CpuTimes;
+
+int read_cpu_times(CpuTimes *times);
 double calculate_cpu_utilization();
 
 #endif

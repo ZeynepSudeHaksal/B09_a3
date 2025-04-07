@@ -17,9 +17,10 @@ void get_core_info(int *num_cores, int *max_freq) {
     char line[256];
     int count = 0;
     while (fgets(line, sizeof(line), fp) != NULL) {
-        if (strstr(line, "processor\t:")) {
+        if (strncmp(line, "processor", 9) == 0) {
             count++;
         }
+
     }
     *num_cores = count;
 

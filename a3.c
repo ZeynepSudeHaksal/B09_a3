@@ -25,9 +25,6 @@ void handle_sigint(int sig) {
    sigint_triggered = 1;
 }
 
-
-
-
 // Handle Ctrl+Z (ignore)
 void handle_sigtstp(int sig) {
     char msg[] = "This is ctrl z, Caught signal 20\n";
