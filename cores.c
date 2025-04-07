@@ -8,6 +8,10 @@
 #include "cores.h"
 
 void get_core_info(int *num_cores, double *max_freq) {
+    ///_|> descry: reads the number of CPU cores and their maximum frequency
+    ///_|> num_cores: pointer to an integer to store the number of cores
+    ///_|> max_freq: pointer to a double to store the max frequency in MHz
+    ///_|> returning: this function does not return anything
     FILE *fp = fopen("/proc/cpuinfo", "r");
     if (!fp) {
         fprintf(stderr, "Failed to open /proc/cpuinfo\n");

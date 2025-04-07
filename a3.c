@@ -19,21 +19,34 @@ volatile sig_atomic_t sigint_triggered = 0;
 
 // Handle Ctrl+C
 void handle_sigint(int sig) {
+    ///_|> descry: handles SIGINT (Ctrl+C) by setting a flag to trigger a quit confirmation
+    ///_|> sig: signal number 
+    ///_|> returning: this function does not return anything
+
    sigint_triggered = 1;
 }
 
 // Handle Ctrl+Z
 void handle_sigtstp(int sig) {
+    ///_|> descry: handles SIGTSTP (Ctrl+Z) by printing a caught message and ignoring the signal
+    ///_|> sig: signal number 
+    ///_|> returning: this function does not return anything
     char msg[] = "This is ctrl z, continuing\n";
     write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 
 }
 
 int main(int argc, char *argv[]) {
+    ///_|> descry: entry point for the system monitor program, handles process forking, data sampling, and plotting
+    ///_|> argc: number of command line arguments
+    ///_|> argv: array of command line argument strings
+    ///_|> returning: program exit status
+
     //signal handling
     signal(SIGINT, handle_sigint);
     signal(SIGTSTP, handle_sigtstp);
 
+    // Default sample size and delay
     int samples = 20;
     int tdelay = 500000;
     int mem_flag = 0, cpu_flag = 0, cores_flag = 0;
@@ -57,6 +70,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Enable all flags by default if none are set
     if (!mem_flag && !cpu_flag && !cores_flag) {
         mem_flag = cpu_flag = cores_flag = 1;
     }

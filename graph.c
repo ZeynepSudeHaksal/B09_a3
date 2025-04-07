@@ -9,6 +9,16 @@
 
 //function for graphing to the terminal.
 void graph(int sample, int delay, int mem, int cp, long int* mem_arr, long int overall_value, double* cpu_arr, int t)
+    ///_|> descry: generates a graph of memory and CPU usage 
+    ///_|> sample: total number of samples
+    ///_|> delay: delay between samples in microseconds
+    ///_|> mem: memory flag
+    ///_|> cp: cpu flag 
+    ///_|> mem_arr: array of memory usage values, type: long int*
+    ///_|> overall_value: total system memory in kB, type: long int
+    ///_|> cpu_arr: array of CPU usage values, type: double*
+    ///_|> t: current sample index, type: int
+    ///_|> returning: this function does not return anything
 {
     printf("\033[2J\n");
     printf("\033[H\n");
@@ -91,6 +101,11 @@ void graph(int sample, int delay, int mem, int cp, long int* mem_arr, long int o
 }   
 
 void draw_cores(int core, int cores, double maxfreq) {
+    ///_|> descry: draws a representation of CPU cores 
+    ///_|> core: cores flag 
+    ///_|> cores: number of cores to draw
+    ///_|> max_freq:  max frequency in MHz
+    ///_|> returning: this function does not return anything
     if (!core){
         return;  // only draw if the core flag is active
     }
