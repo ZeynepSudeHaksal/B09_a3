@@ -31,7 +31,7 @@ void get_core_info(int *num_cores, double *max_freq) {
         return;
     }
 
-    fscanf(freq_fp, "%lf", &max_freq);
+    fscanf(freq_fp, "%lf", max_freq);
     fclose(freq_fp);
     fclose(fp);
 }
