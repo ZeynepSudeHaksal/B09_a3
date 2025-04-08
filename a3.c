@@ -80,19 +80,19 @@ int main(int argc, char *argv[]) {
     // Memory pipe
     if (mem_flag && pipe(mem_pipe) == -1) {
         perror("Error creating memory pipe");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     // CPU pipe
     if (cpu_flag && pipe(cpu_pipe) == -1) {
         perror("Error creating CPU pipe");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     // Core pipe
     if (cores_flag && pipe(core_pipe) == -1) {
         perror("Error creating core pipe");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     // Fork memory process
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
         mem_pid = fork();
         if (mem_pid == -1) {
             perror("Error forking memory process");
-            exit(EXIT_FAILURE);
+            exit(1);
         } 
         else if (mem_pid == 0) {
             close(mem_pipe[0]);
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
                 if (write(mem_pipe[1], &used, sizeof(long int)) == -1 ||
                     write(mem_pipe[1], &total, sizeof(long int)) == -1) {
                     perror("Error writing to memory pipe");
-                    exit(EXIT_FAILURE);
+                    exit(1);
                 }
                 usleep(tdelay);
             }
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
         cpu_pid = fork();
         if (cpu_pid == -1) {
             perror("Error forking CPU process");
-            exit(EXIT_FAILURE);
+            exit(1);
         } 
         else if (cpu_pid == 0) {
             close(cpu_pipe[0]);
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 
             if (read_cpu_times(&prev) != 0) {
                 fprintf(stderr, "Initial CPU read failed\n");
-                exit(EXIT_FAILURE);
+                exit(1);
             }
 
             usleep(tdelay);  // wait before the first diff
@@ -142,14 +142,14 @@ int main(int argc, char *argv[]) {
             while (1) {
                 if (read_cpu_times(&curr) != 0) {
                     fprintf(stderr, "CPU read failed\n");
-                    exit(EXIT_FAILURE);
+                    exit(1);
                 }
 
                 cpu = calculate_cpu_utilization(&prev, &curr);
 
                 if (write(cpu_pipe[1], &cpu, sizeof(double)) == -1) {
                     perror("Error writing to CPU pipe");
-                    exit(EXIT_FAILURE);
+                    exit(1);
                 }
 
                 prev = curr; // update previous
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
         core_pid = fork();
         if (core_pid == -1) {
             perror("Error forking cores process");
-            exit(EXIT_FAILURE);
+            exit(1);
         } 
         else if (core_pid == 0) {
             close(core_pipe[0]);
@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
             if (write(core_pipe[1], &num_cores, sizeof(int)) == -1 ||
                 write(core_pipe[1], &max_freq, sizeof(double)) == -1) {
                 perror("Error writing to core pipe");
-                exit(EXIT_FAILURE);
+                exit(1);
             }
             close(core_pipe[1]);
             exit(0);  // Exit after one-time write
@@ -262,6 +262,6 @@ int main(int argc, char *argv[]) {
         kill(core_pid, SIGKILL);
     }
 
-    while (wait(NULL) > 0);
+    while (wait(NULL) > 0); // to prevent zombie processes
     return 0;
 }
