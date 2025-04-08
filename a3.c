@@ -105,10 +105,9 @@ int main(int argc, char *argv[]) {
         else if (mem_pid == 0) {
             close(mem_pipe[0]);
             long int used, total;
-            while (1) {
+            while (1) { //continue getting memory information until the child terminates for real-time updates
                 get_memory_usage(&used, &total);
-                if (write(mem_pipe[1], &used, sizeof(long int)) == -1 ||
-                    write(mem_pipe[1], &total, sizeof(long int)) == -1) {
+                if (write(mem_pipe[1], &used, sizeof(long int)) == -1 || write(mem_pipe[1], &total, sizeof(long int)) == -1) {
                     perror("Error writing to memory pipe");
                     exit(1);
                 }
@@ -139,7 +138,7 @@ int main(int argc, char *argv[]) {
 
             usleep(tdelay);  // wait before the first diff
 
-            while (1) {
+            while (1) { //continue getting cpu information until the child terminates for real-time updates
                 if (read_cpu_times(&curr) != 0) {
                     fprintf(stderr, "CPU read failed\n");
                     exit(1);
@@ -174,8 +173,7 @@ int main(int argc, char *argv[]) {
         else if (core_pid == 0) {
             close(core_pipe[0]);
             get_core_info(&num_cores, &max_freq);
-            if (write(core_pipe[1], &num_cores, sizeof(int)) == -1 ||
-                write(core_pipe[1], &max_freq, sizeof(double)) == -1) {
+            if (write(core_pipe[1], &num_cores, sizeof(int)) == -1 || write(core_pipe[1], &max_freq, sizeof(double)) == -1) {
                 perror("Error writing to core pipe");
                 exit(1);
             }

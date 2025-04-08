@@ -34,7 +34,7 @@ To solve the problem, I used a modular and multi-process approach:
 - The program also handles user interruption (Ctrl+C) to allow early exit.
 
 1. Main (a3.c):
-- Handles command-line arguments, signal handling, and controls the flow of the program. Initially sets all metric flags (memory, CPU, cores) to zero. If no specific metric is requested, it defaults to enabling all. It parses the command-line arguments for sample size, delay, and feature flags. Depending on the flags, it forks separate child processes for each resource monitor and sets up pipes for inter-process communication. The main loop reads from the pipes, updates internal data arrays, and calls the visualization functions. It also handles SIGINT to optionally allow the user to quit early.
+- Handles command-line arguments, signal handling, and controls the flow of the program. Initially sets all metric flags (memory, CPU, cores) to zero. If no specific metric is requested, it defaults to enabling all. It parses the command-line arguments for sample size, delay, and feature flags. Depending on the flags, it forks separate child processes for each resource monitor and sets up pipes for inter-process communication. The main loop reads from the pipes, updates corresponding data arrays, and calls the visualization functions. It also handles SIGINT to optionally allow the user to quit early.
     - handle_sigint(int sig)
     Captures the SIGINT signal (Ctrl+C) and sets a flag (sigint_triggered = 1) to later prompt the user whether they want to exit. This allows for non-disruptive interruption. I saw on Piazza that we can use volatile sig_atomic_t for signal handling. So I defined two flags signint_triggered and should_quit. Once (Ctrl+C) is detected handle_signit function sets signint_triggered to 1. In the main function, it checks whether signint_triggered is 0 or 1, if it is 1, it asks user if they want to quit. If the answer is yes it sets should_quit to 1 and the program safely terminates. 
 
@@ -282,6 +282,7 @@ Number of Cores: 8 @ 3.20 GHz
 - Output updates in real-time based on delay and sample count.
 
 - If user presses Ctrl+C, they're asked whether to quit or not.
+- If user presses Ctrl+Z, the signal is ignored.
 
 ### Test Cases
 Case Input Args	                    Expected Behavior
@@ -292,6 +293,7 @@ Case Input Args	                    Expected Behavior
 5	./myMonitoringTool --cores	    Core display only (defauit values for sample and delay)
 6	Mistyped args (--mem)	        Defaults to all enabled
 7	Ctrl+C mid-run	                Prompt user to quit or continue
+8	Ctrl+Z mid-run	                Ignore signal and continue
 
 
 ### Disclaimers
