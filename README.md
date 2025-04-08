@@ -317,3 +317,6 @@ Case Input Args	                    Expected Behavior
 - https://stackoverflow.com/questions/10053788/implicit-declaration-of-function-usleep
 - https://www.linuxhowtos.org/System/procstat.htm
 - https://docs.kernel.org/filesystems/proc.html
+- https://opensource.com/article/18/8/what-how-makefile
+- https://www.gnu.org/software/make/manual/make.html
+
